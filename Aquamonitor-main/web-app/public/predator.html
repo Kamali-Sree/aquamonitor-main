@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AquaMonitor - Predator Detection</title>
+    <link rel="stylesheet" href="styles.css?v=1.0">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo">AquaMonitor</div>
+            <nav class="nav">
+                <a href="home.html">Home</a>
+                <a href="dashboard.html">Dashboard</a>
+                <a href="analytics.html">Analytics</a>
+                <a href="predator.html" class="active">Predator Detection</a>
+                <a href="about.html">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Predator Detection</h1>
+                <p class="hero-subtitle">Upload an image to detect and identify predators in your aquaculture environment</p>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="container">
+                <div class="upload-section">
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <div class="upload-area">
+                            <input type="file" id="imageInput" name="image" accept="image/*,video/*" required>
+                            <label for="imageInput" class="upload-label">
+                                <div class="upload-icon">📷</div>
+                                <div>Click to upload or drag and drop an image or video</div>
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Detect Predator</button>
+                    </form>
+                    <div id="result" class="result-section" style="display: none;">
+                        <h3>Detection Result</h3>
+                        <div id="prediction"></div>
+                        <div id="confidence"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            const file = document.getElementById('imageInput').files[0];
+            if (!file) return;
+
+            formData.append('image', file);
+
+            try {
+                const response = await fetch('/api/predict-predator', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    document.getElementById('prediction').textContent = `Error: ${result.error}`;
+                    document.getElementById('confidence').textContent = '';
+                    document.getElementById('result').style.display = 'block';
+                    return;
+                }
+
+                document.getElementById('prediction').textContent = `Predator: ${result.predator || 'Unknown'}`;
+                const c = Number(result.confidence);
+                if (Number.isFinite(c)) {
+                    document.getElementById('confidence').textContent = `Confidence: ${(c * 100).toFixed(2)}%`;
+                } else {
+                    document.getElementById('confidence').textContent = 'Confidence: N/A';
+                }
+                document.getElementById('result').style.display = 'block';
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('prediction').textContent = 'Error detecting predator. Check server logs.';
+                document.getElementById('confidence').textContent = '';
+                document.getElementById('result').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
