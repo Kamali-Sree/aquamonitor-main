@@ -627,13 +627,8 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
             console.log(` [${i+1}/${locations.length}] Analyzing: ${location.pond_name} (${location.latitude}, ${location.longitude})`);
             
             try {
-<<<<<<< HEAD
                 // Get current prediction for THIS specific location
-                console.log(`🤖 Getting current prediction for ${location.pond_name}`);
-=======
-                // Step 1: Get current prediction for THIS specific location
                 console.log(` Getting current prediction for ${location.pond_name}`);
->>>>>>> 1bf2986 (Latest modified)
                 
                 const currentPrediction = await getDirectPrediction(
                     location.latitude,
@@ -657,36 +652,6 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
                 
 <<<<<<< HEAD
                 // Generate enhanced AI recommendations
-=======
-                let futurePrediction = null;
-                try {
-                    const nextHourDate = new Date(Date.now() + 60 * 60 * 1000);
-                    const futureResponse = await fetch(`http://localhost:${PORT}/api/predict-future`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            latitude: parseFloat(location.latitude),
-                            longitude: parseFloat(location.longitude),
-                            target_datetime: nextHourDate.toISOString(),
-                            species: location.species
-                        })
-                    });
-                    
-                    futurePrediction = await futureResponse.json();
-                    
-                    if (futurePrediction.error) {
-                        console.warn(` Future prediction failed for ${location.pond_name}: ${futurePrediction.error}`);
-                        futurePrediction = generateFallbackPrediction(currentPrediction, location.species);
-                    } else {
-                        console.log(`🔮 Future prediction for ${location.pond_name}:`, futurePrediction.predicted_values || futurePrediction);
-                    }
-                } catch (error) {
-                    console.warn(` Future prediction API error for ${location.pond_name}: ${error.message}`);
-                    futurePrediction = generateFallbackPrediction(currentPrediction, location.species);
-                }
-                
-                // Step 3: Generate enhanced AI recommendations
->>>>>>> 1bf2986 (Latest modified)
                 const enhancedRecommendations = generateEnhancedRecommendations(
                     currentPrediction, 
                     nextHourPrediction, 
@@ -1315,25 +1280,34 @@ function calculateRiskLevel(prediction, species) {
     return 'LOW';
 }
 
-// Get analysis history
+// Get analysis history - ENABLED
 app.get('/api/farm/:farmId/history', async (req, res) => {
-    // Analysis History feature disabled
-    res.json({ success: false, error: 'Analysis History feature has been disabled' });
+    try {
+        const { farmId } = req.params;
+        const { limit = 50 } = req.query;
+        
+        console.log(' Getting analysis history for farm:', farmId);
+        
+        // For now, return empty array since we don't store analysis history yet
+        // This can be implemented when needed
+        res.json({ 
+            success: true, 
+            history: [],
+            message: 'Analysis history feature is available but no historical analyses found'
+        });
+    } catch (error) {
+        console.error(' Error getting analysis history:', error);
+        res.status(500).json({ success: false, error: 'Failed to get analysis history: ' + error.message });
+    }
 });
 
 // Test database connection on startup
 testConnection();
 
 // Start server
-<<<<<<< HEAD
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🌍 AquaMonitor Server running at http://localhost:${PORT}`);
-    console.log('🔗 Available pages:');
-=======
 app.listen(PORT, () => {
     console.log(` AquaMonitor Server running at http://localhost:${PORT}`);
     console.log(' Available pages:');
->>>>>>> 1bf2986 (Latest modified)
     console.log(`   Home: http://localhost:${PORT}/home.html`);
     console.log(`   Dashboard: http://localhost:${PORT}/dashboard.html`);
     console.log(`   Data Reports: http://localhost:${PORT}/data-reports.html`);
@@ -1341,14 +1315,8 @@ app.listen(PORT, () => {
     console.log(`   Predator Detection: http://localhost:${PORT}/predator.html`);
     console.log(`   About: http://localhost:${PORT}/about.html`);
     console.log('');
-<<<<<<< HEAD
-    console.log('🏭 Farm Management System Ready');
+    console.log(' Farm Management System Ready');
     console.log('   Register your farm or login with existing credentials');
-=======
-    console.log(' Farm Management Demo:');
-    console.log('   Farm Name: Blue Ocean Aquaculture');
-    console.log('   Farm ID: BOA2024');
->>>>>>> 1bf2986 (Latest modified)
     
     // Auto-open browser
     const homeUrl = `http://localhost:${PORT}/home.html`;
