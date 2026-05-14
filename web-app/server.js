@@ -650,7 +650,6 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
                 // Generate next hour prediction with small variations
                 const nextHourPrediction = generateFallbackPrediction(currentPrediction, location.species || 'general');
                 
-<<<<<<< HEAD
                 // Generate enhanced AI recommendations
                 const enhancedRecommendations = generateEnhancedRecommendations(
                     currentPrediction, 
