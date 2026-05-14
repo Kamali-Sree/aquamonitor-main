@@ -20,12 +20,12 @@ const pool = new Pool({
 async function testConnection() {
     try {
         const client = await pool.connect();
-        console.log('✅ PostgreSQL Database connected successfully');
+        console.log(' PostgreSQL Database connected successfully');
         client.release();
         return true;
     } catch (error) {
-        console.error('❌ Database connection failed:', error.message);
-        console.log('💡 Make sure PostgreSQL is running and database "aquamonitor" exists');
+        console.error(' Database connection failed:', error.message);
+        console.log(' Make sure PostgreSQL is running and database "aquamonitor" exists');
         return false;
     }
 }
@@ -113,7 +113,7 @@ app.get('/predator.html', (req, res) => {
 
 // Test endpoint for predator detection
 app.get('/api/test-predator', (req, res) => {
-    console.log('🧪 Testing predator detection endpoint');
+    console.log(' Testing predator detection endpoint');
     res.json({
         success: true,
         message: 'Predator detection API is working',
@@ -125,7 +125,7 @@ app.get('/api/test-predator', (req, res) => {
 
 // Predator Detection API
 app.post('/api/predict-predator', upload.single('image'), (req, res) => {
-    console.log('🦈 Predator detection request received');
+    console.log(' Predator detection request received');
     
     if (!req.file) {
         return res.status(400).json({
@@ -134,8 +134,8 @@ app.post('/api/predict-predator', upload.single('image'), (req, res) => {
         });
     }
     
-    console.log('📷 Processing uploaded file:', req.file.originalname);
-    console.log('📁 File path:', req.file.path);
+    console.log(' Processing uploaded file:', req.file.originalname);
+    console.log(' File path:', req.file.path);
     
     // Use working TensorFlow Lite model for prediction
     const python = spawn('python', [
@@ -152,22 +152,22 @@ app.post('/api/predict-predator', upload.single('image'), (req, res) => {
     
     python.stderr.on('data', (data) => {
         errorOutput += data.toString();
-        console.error('🐍 Python stderr:', data.toString());
+        console.error(' Python stderr:', data.toString());
     });
     
     python.on('close', (code) => {
-        console.log('🔍 Python process completed with code:', code);
-        console.log('📊 Raw Python output:', result);
+        console.log(' Python process completed with code:', code);
+        console.log(' Raw Python output:', result);
         
         // Clean up uploaded file
         const fs = require('fs');
         fs.unlink(req.file.path, (err) => {
-            if (err) console.error('⚠️ Error deleting uploaded file:', err.message);
+            if (err) console.error(' Error deleting uploaded file:', err.message);
         });
         
         if (code !== 0) {
-            console.error('❌ Python process failed with code:', code);
-            console.error('❌ Error output:', errorOutput);
+            console.error(' Python process failed with code:', code);
+            console.error(' Error output:', errorOutput);
             return res.status(500).json({
                 success: false,
                 error: 'Predator detection failed',
@@ -177,10 +177,10 @@ app.post('/api/predict-predator', upload.single('image'), (req, res) => {
         
         try {
             const prediction = JSON.parse(result);
-            console.log('✅ Parsed prediction:', prediction);
+            console.log(' Parsed prediction:', prediction);
             
             if (prediction.error) {
-                console.error('❌ Prediction failed:', prediction.error);
+                console.error(' Prediction failed:', prediction.error);
                 return res.status(500).json({
                     success: false,
                     error: prediction.error
@@ -195,7 +195,7 @@ app.post('/api/predict-predator', upload.single('image'), (req, res) => {
                 timestamp: new Date().toISOString()
             };
             
-            console.log('🎯 Final response:', {
+            console.log(' Final response:', {
                 predator: response.predator,
                 confidence: `${(response.confidence * 100).toFixed(1)}%`
             });
@@ -203,8 +203,8 @@ app.post('/api/predict-predator', upload.single('image'), (req, res) => {
             res.json(response);
             
         } catch (e) {
-            console.error('❌ JSON parse error:', e.message);
-            console.error('❌ Raw result:', result);
+            console.error(' JSON parse error:', e.message);
+            console.error(' Raw result:', result);
             res.status(500).json({
                 success: false,
                 error: 'Failed to parse prediction result',
@@ -220,54 +220,54 @@ function generatePredatorRecommendations(detection) {
     
     switch (detection.name) {
         case 'Bird (Heron)':
-            recommendations.push('🚨 High threat detected! Install bird netting over ponds immediately');
-            recommendations.push('🔊 Use sonic bird deterrents or reflective tape');
-            recommendations.push('👥 Increase human presence during feeding times');
-            recommendations.push('🌿 Remove perching spots near water bodies');
+            recommendations.push(' High threat detected! Install bird netting over ponds immediately');
+            recommendations.push(' Use sonic bird deterrents or reflective tape');
+            recommendations.push(' Increase human presence during feeding times');
+            recommendations.push(' Remove perching spots near water bodies');
             break;
             
         case 'Snake (Water Snake)':
-            recommendations.push('⚠️ Medium threat - Monitor snake activity patterns');
-            recommendations.push('🏠 Install snake-proof fencing around pond perimeter');
-            recommendations.push('🧹 Keep grass and vegetation trimmed near water');
-            recommendations.push('🔍 Regular inspection for snake hiding spots');
+            recommendations.push(' Medium threat - Monitor snake activity patterns');
+            recommendations.push(' Install snake-proof fencing around pond perimeter');
+            recommendations.push(' Keep grass and vegetation trimmed near water');
+            recommendations.push(' Regular inspection for snake hiding spots');
             break;
             
         case 'Otter':
-            recommendations.push('🚨 High threat! Otters can consume large quantities of fish');
-            recommendations.push('🔒 Install otter-proof barriers and deeper water sections');
-            recommendations.push('🌙 Increase nighttime monitoring (otters are nocturnal)');
-            recommendations.push('📞 Contact local wildlife management for relocation');
+            recommendations.push(' High threat! Otters can consume large quantities of fish');
+            recommendations.push(' Install otter-proof barriers and deeper water sections');
+            recommendations.push(' Increase nighttime monitoring (otters are nocturnal)');
+            recommendations.push(' Contact local wildlife management for relocation');
             break;
             
         case 'Turtle':
-            recommendations.push('ℹ️ Low threat - Turtles mainly eat vegetation and small fish');
-            recommendations.push('🐢 Monitor turtle population to prevent overpopulation');
-            recommendations.push('🥬 Ensure adequate vegetation to reduce fish predation');
+            recommendations.push(' Low threat - Turtles mainly eat vegetation and small fish');
+            recommendations.push(' Monitor turtle population to prevent overpopulation');
+            recommendations.push(' Ensure adequate vegetation to reduce fish predation');
             break;
             
         case 'Frog':
-            recommendations.push('✅ Very low threat - Frogs are generally beneficial');
-            recommendations.push('🦟 Frogs help control insect populations');
-            recommendations.push('🌿 Maintain natural habitat balance');
+            recommendations.push(' Very low threat - Frogs are generally beneficial');
+            recommendations.push(' Frogs help control insect populations');
+            recommendations.push(' Maintain natural habitat balance');
             break;
             
         default:
-            recommendations.push('✅ No immediate predator threat detected');
-            recommendations.push('🔍 Continue regular monitoring for predator activity');
-            recommendations.push('📋 Maintain predator prevention measures');
+            recommendations.push(' No immediate predator threat detected');
+            recommendations.push(' Continue regular monitoring for predator activity');
+            recommendations.push(' Maintain predator prevention measures');
     }
     
     // Add general recommendations
-    recommendations.push('📊 Log this detection for predator activity tracking');
-    recommendations.push('⏰ Schedule follow-up monitoring in 24 hours');
+    recommendations.push(' Log this detection for predator activity tracking');
+    recommendations.push(' Schedule follow-up monitoring in 24 hours');
     
     return recommendations;
 }
 
 // Water Quality Prediction API - ALL PREDICTIONS USE LSTM MODEL ONLY
 app.post('/api/predict', (req, res) => {
-    console.log('🤖 Prediction request received:', req.body);
+    console.log(' Prediction request received:', req.body);
     
     const { temperature, dissolved_oxygen, ph, latitude, longitude, species } = req.body;
     // Fix species handling - ensure it's a string and handle undefined/null
@@ -286,7 +286,7 @@ app.post('/api/predict', (req, res) => {
         ]);
     } else if (temperature && dissolved_oxygen && ph) {
         // Manual input - Use LSTM model with default location for comparison
-        console.log('📊 Manual input - Using LSTM model with default location for analysis');
+        console.log(' Manual input - Using LSTM model with default location for analysis');
         const defaultLat = 11.0168; // Coimbatore, India (central location)
         const defaultLon = 76.9558;
         
@@ -316,12 +316,12 @@ app.post('/api/predict', (req, res) => {
         const msg = data.toString();
         if (!msg.includes('oneDNN') && !msg.includes('UserWarning') && !msg.includes('INFO:')) {
             errorOutput += msg;
-            console.error(`❌ Python Error: ${msg}`);
+            console.error(` Python Error: ${msg}`);
         }
     });
 
     python.on('close', (code) => {
-        console.log(`🔍 Python process completed with code: ${code}`);
+        console.log(` Python process completed with code: ${code}`);
         
         if (code !== 0 && errorOutput) {
             return res.status(500).json({ error: 'Prediction failed', details: errorOutput });
@@ -329,10 +329,10 @@ app.post('/api/predict', (req, res) => {
         
         try {
             const parsed = JSON.parse(result);
-            console.log('✅ Prediction successful');
+            console.log(' Prediction successful');
             res.json(parsed);
         } catch (e) {
-            console.error('❌ JSON parse error:', e);
+            console.error(' JSON parse error:', e);
             res.status(500).json({ error: 'Prediction failed', details: result });
         }
     });
@@ -345,7 +345,7 @@ app.get('/api/fetch-data', (req, res) => {
     const startDate = req.query.start_date || '';
     const endDate = req.query.end_date || '';
 
-    console.log(`📈 Fetching data for coordinates: ${lat}, ${lon}`);
+    console.log(` Fetching data for coordinates: ${lat}, ${lon}`);
 
     const python = spawn('python', [
         path.join(__dirname, 'fetch_data_universal.py'),
@@ -390,7 +390,7 @@ app.get('/api/fetch-data', (req, res) => {
 app.post('/api/predict-future', (req, res) => {
     const { latitude, longitude, target_datetime, species } = req.body;
     
-    console.log('🔮 Future prediction request:', req.body);
+    console.log(' Future prediction request:', req.body);
     
     // Fix species handling
     const safeSpecies = (species && typeof species === 'string') ? species.toLowerCase() : 'general';
@@ -438,7 +438,7 @@ app.post('/api/farm/register', async (req, res) => {
     try {
         const { farmName, farmId, password, ownerName, contactEmail, contactPhone } = req.body;
         
-        console.log('📝 Farm registration request:', { farmName, farmId, ownerName });
+        console.log(' Farm registration request:', { farmName, farmId, ownerName });
         
         if (!farmName || !farmId || !password) {
             return res.status(400).json({ success: false, error: 'Farm name, ID, and password are required' });
@@ -455,10 +455,10 @@ app.post('/api/farm/register', async (req, res) => {
             [farmName, farmId, password, ownerName, contactEmail, contactPhone]
         );
         
-        console.log('✅ Farm registered successfully:', farmId);
+        console.log(' Farm registered successfully:', farmId);
         res.json({ success: true, farm: result.rows[0] });
     } catch (error) {
-        console.error('❌ Error registering farm:', error);
+        console.error(' Error registering farm:', error);
         res.status(500).json({ success: false, error: 'Failed to register farm: ' + error.message });
     }
 });
@@ -468,7 +468,7 @@ app.post('/api/farm/login', async (req, res) => {
     try {
         const { farmName, farmId } = req.body;
         
-        console.log('🔐 Farm login request:', { farmName, farmId });
+        console.log(' Farm login request:', { farmName, farmId });
         
         if (!farmName || !farmId) {
             return res.status(400).json({ success: false, error: 'Farm name and ID are required' });
@@ -480,13 +480,13 @@ app.post('/api/farm/login', async (req, res) => {
         );
         
         if (result.rows.length === 0) {
-            console.log('❌ Invalid farm credentials');
+            console.log(' Invalid farm credentials');
             return res.status(401).json({ success: false, error: 'Invalid farm credentials' });
         }
         
         const farm = result.rows[0];
         
-        console.log('✅ Farm authenticated successfully:', farmId);
+        console.log(' Farm authenticated successfully:', farmId);
         res.json({ 
             success: true, 
             farm: {
@@ -500,7 +500,7 @@ app.post('/api/farm/login', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('❌ Error authenticating farm:', error);
+        console.error(' Error authenticating farm:', error);
         res.status(500).json({ success: false, error: 'Authentication failed: ' + error.message });
     }
 });
@@ -510,17 +510,17 @@ app.get('/api/farm/:farmId/locations', async (req, res) => {
     try {
         const { farmId } = req.params;
         
-        console.log('📍 Getting locations for farm:', farmId);
+        console.log(' Getting locations for farm:', farmId);
         
         const result = await pool.query(
             'SELECT pl.*, af.farm_name FROM pond_locations pl JOIN aquafarms af ON pl.farm_id = af.farm_id WHERE pl.farm_id = $1 ORDER BY pl.pond_name',
             [farmId]
         );
         
-        console.log(`✅ Found ${result.rows.length} locations for farm ${farmId}`);
+        console.log(` Found ${result.rows.length} locations for farm ${farmId}`);
         res.json({ success: true, locations: result.rows });
     } catch (error) {
-        console.error('❌ Error getting farm locations:', error);
+        console.error(' Error getting farm locations:', error);
         res.status(500).json({ success: false, error: 'Failed to get locations: ' + error.message });
     }
 });
@@ -534,7 +534,7 @@ app.post('/api/farm/:farmId/locations', async (req, res) => {
             secondarySpecies, locationType, status, notes
         } = req.body;
         
-        console.log('➕ Adding location for farm:', farmId, locationName);
+        console.log(' Adding location for farm:', farmId, locationName);
         
         if (!locationName || !latitude || !longitude || !primarySpecies) {
             return res.status(400).json({ success: false, error: 'Location name, coordinates, and primary species are required' });
@@ -545,10 +545,10 @@ app.post('/api/farm/:farmId/locations', async (req, res) => {
             [farmId, locationName, latitude, longitude, primarySpecies, secondarySpecies, locationType || 'pond', status || 'active', notes]
         );
         
-        console.log('✅ Location added successfully:', locationName);
+        console.log(' Location added successfully:', locationName);
         res.json({ success: true, location: result.rows[0] });
     } catch (error) {
-        console.error('❌ Error adding farm location:', error);
+        console.error(' Error adding farm location:', error);
         res.status(500).json({ success: false, error: 'Failed to add location: ' + error.message });
     }
 });
@@ -562,17 +562,17 @@ app.put('/api/farm/:farmId/locations/:locationId', async (req, res) => {
             secondarySpecies, locationType, status, notes
         } = req.body;
         
-        console.log('✏️ Updating location:', locationId);
+        console.log(' Updating location:', locationId);
         
         const result = await pool.query(
             'UPDATE pond_locations SET pond_name = $1, latitude = $2, longitude = $3, species = $4, secondary_species = $5, pond_type = $6, status = $7, notes = $8, updated_at = CURRENT_TIMESTAMP WHERE id = $9 RETURNING *',
             [locationName, latitude, longitude, primarySpecies, secondarySpecies, locationType, status, notes, locationId]
         );
         
-        console.log('✅ Location updated successfully');
+        console.log(' Location updated successfully');
         res.json({ success: true, location: result.rows[0] });
     } catch (error) {
-        console.error('❌ Error updating farm location:', error);
+        console.error(' Error updating farm location:', error);
         res.status(500).json({ success: false, error: 'Failed to update location: ' + error.message });
     }
 });
@@ -582,14 +582,14 @@ app.delete('/api/farm/:farmId/locations/:locationId', async (req, res) => {
     try {
         const { farmId, locationId } = req.params;
         
-        console.log('🗑️ Deleting location:', locationId);
+        console.log(' Deleting location:', locationId);
         
         await pool.query('DELETE FROM pond_locations WHERE id = $1 AND farm_id = $2', [locationId, farmId]);
         
-        console.log('✅ Location deleted successfully');
+        console.log(' Location deleted successfully');
         res.json({ success: true });
     } catch (error) {
-        console.error('❌ Error deleting farm location:', error);
+        console.error(' Error deleting farm location:', error);
         res.status(500).json({ success: false, error: 'Failed to delete location: ' + error.message });
     }
 });
@@ -600,7 +600,7 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
         const { farmId } = req.params;
         const { locationIds } = req.body;
         
-        console.log('🚀 Fast analysis for farm:', farmId, 'Locations:', locationIds);
+        console.log(' Fast analysis for farm:', farmId, 'Locations:', locationIds);
         
         if (!locationIds || !Array.isArray(locationIds) || locationIds.length === 0) {
             return res.status(400).json({ success: false, error: 'Location IDs are required' });
@@ -613,7 +613,7 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
         );
         
         const locations = locationsResult.rows;
-        console.log(`📊 Found ${locations.length} locations to analyze`);
+        console.log(` Found ${locations.length} locations to analyze`);
         
         if (locations.length === 0) {
             return res.status(404).json({ success: false, error: 'No locations found for analysis' });
@@ -624,11 +624,16 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
         // Process each location individually for detailed analysis
         for (let i = 0; i < locations.length; i++) {
             const location = locations[i];
-            console.log(`🔍 [${i+1}/${locations.length}] Analyzing: ${location.pond_name} (${location.latitude}, ${location.longitude})`);
+            console.log(` [${i+1}/${locations.length}] Analyzing: ${location.pond_name} (${location.latitude}, ${location.longitude})`);
             
             try {
+<<<<<<< HEAD
                 // Get current prediction for THIS specific location
                 console.log(`🤖 Getting current prediction for ${location.pond_name}`);
+=======
+                // Step 1: Get current prediction for THIS specific location
+                console.log(` Getting current prediction for ${location.pond_name}`);
+>>>>>>> 1bf2986 (Latest modified)
                 
                 const currentPrediction = await getDirectPrediction(
                     location.latitude,
@@ -640,7 +645,7 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
                     throw new Error(`Current prediction error: ${currentPrediction.error}`);
                 }
                 
-                console.log(`✅ Current prediction for ${location.pond_name}:`, {
+                console.log(` Current prediction for ${location.pond_name}:`, {
                     temp: currentPrediction.predicted_values?.water_temp,
                     do: currentPrediction.predicted_values?.do,
                     ph: currentPrediction.predicted_values?.ph,
@@ -650,7 +655,38 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
                 // Generate next hour prediction with small variations
                 const nextHourPrediction = generateFallbackPrediction(currentPrediction, location.species || 'general');
                 
+<<<<<<< HEAD
                 // Generate enhanced AI recommendations
+=======
+                let futurePrediction = null;
+                try {
+                    const nextHourDate = new Date(Date.now() + 60 * 60 * 1000);
+                    const futureResponse = await fetch(`http://localhost:${PORT}/api/predict-future`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            latitude: parseFloat(location.latitude),
+                            longitude: parseFloat(location.longitude),
+                            target_datetime: nextHourDate.toISOString(),
+                            species: location.species
+                        })
+                    });
+                    
+                    futurePrediction = await futureResponse.json();
+                    
+                    if (futurePrediction.error) {
+                        console.warn(` Future prediction failed for ${location.pond_name}: ${futurePrediction.error}`);
+                        futurePrediction = generateFallbackPrediction(currentPrediction, location.species);
+                    } else {
+                        console.log(`🔮 Future prediction for ${location.pond_name}:`, futurePrediction.predicted_values || futurePrediction);
+                    }
+                } catch (error) {
+                    console.warn(` Future prediction API error for ${location.pond_name}: ${error.message}`);
+                    futurePrediction = generateFallbackPrediction(currentPrediction, location.species);
+                }
+                
+                // Step 3: Generate enhanced AI recommendations
+>>>>>>> 1bf2986 (Latest modified)
                 const enhancedRecommendations = generateEnhancedRecommendations(
                     currentPrediction, 
                     nextHourPrediction, 
@@ -678,7 +714,7 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
                 
                 results.push(result);
                 
-                console.log(`✅ [${i+1}/${locations.length}] Analysis completed for: ${location.pond_name}`);
+                console.log(` [${i+1}/${locations.length}] Analysis completed for: ${location.pond_name}`);
                 
                 // Small delay to avoid overwhelming the system
                 if (i < locations.length - 1) {
@@ -686,7 +722,7 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
                 }
                 
             } catch (error) {
-                console.error(`❌ Error analyzing ${location.pond_name}:`, error.message);
+                console.error(` Error analyzing ${location.pond_name}:`, error.message);
                 results.push({
                     location: location,
                     error: `Analysis failed: ${error.message}`,
@@ -699,7 +735,7 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
         res.json({ success: true, results: results });
         
     } catch (error) {
-        console.error('❌ Error in fast analysis:', error);
+        console.error(' Error in fast analysis:', error);
         res.status(500).json({ success: false, error: 'Failed to perform analysis: ' + error.message });
     }
 });
@@ -837,7 +873,7 @@ function generateComprehensiveRecommendations(current, future, historical, speci
     const thresholds = getSpeciesThresholds(species);
     
     if (!current.predicted_values) {
-        return [`⚠️ Unable to generate recommendations - no current data available`];
+        return [` Unable to generate recommendations - no current data available`];
     }
     
     const temp = current.predicted_values.water_temp;
@@ -848,41 +884,41 @@ function generateComprehensiveRecommendations(current, future, historical, speci
     if (temp < thresholds.temperature.min) {
         const deficit = thresholds.temperature.min - temp;
         if (deficit > 5) {
-            recommendations.push(`🚨 CRITICAL: Temperature is ${temp}°C, ${deficit.toFixed(1)}°C below minimum for ${species}. Immediate heating required!`);
+            recommendations.push(` CRITICAL: Temperature is ${temp}°C, ${deficit.toFixed(1)}°C below minimum for ${species}. Immediate heating required!`);
         } else {
-            recommendations.push(`🌡️ Temperature is ${temp}°C - Install heating system to reach optimal ${thresholds.temperature.min}-${thresholds.temperature.max}°C range`);
+            recommendations.push(` Temperature is ${temp}°C - Install heating system to reach optimal ${thresholds.temperature.min}-${thresholds.temperature.max}°C range`);
         }
     } else if (temp > thresholds.temperature.max) {
         const excess = temp - thresholds.temperature.max;
         if (excess > 5) {
-            recommendations.push(`🚨 CRITICAL: Temperature is ${temp}°C, ${excess.toFixed(1)}°C above maximum for ${species}. Emergency cooling needed!`);
+            recommendations.push(` CRITICAL: Temperature is ${temp}°C, ${excess.toFixed(1)}°C above maximum for ${species}. Emergency cooling needed!`);
         } else {
-            recommendations.push(`🌡️ Temperature is ${temp}°C - Implement cooling measures: increase water circulation, add shade, or use chillers`);
+            recommendations.push(` Temperature is ${temp}°C - Implement cooling measures: increase water circulation, add shade, or use chillers`);
         }
     } else {
-        recommendations.push(`✅ Temperature (${temp}°C) is optimal for ${species} cultivation`);
+        recommendations.push(` Temperature (${temp}°C) is optimal for ${species} cultivation`);
     }
     
     // Dissolved Oxygen analysis
     if (do_val < thresholds.do.min) {
         const deficit = thresholds.do.min - do_val;
-        recommendations.push(`🚨 CRITICAL: Dissolved oxygen at ${do_val} mg/L is ${deficit.toFixed(1)} mg/L below minimum (${thresholds.do.min} mg/L). Install emergency aeration immediately!`);
-        recommendations.push(`💨 Recommended actions: Add air stones, increase surface agitation, reduce feeding temporarily`);
+        recommendations.push(` CRITICAL: Dissolved oxygen at ${do_val} mg/L is ${deficit.toFixed(1)} mg/L below minimum (${thresholds.do.min} mg/L). Install emergency aeration immediately!`);
+        recommendations.push(` Recommended actions: Add air stones, increase surface agitation, reduce feeding temporarily`);
     } else if (do_val < thresholds.do.min + 2) {
-        recommendations.push(`⚠️ Dissolved oxygen at ${do_val} mg/L is adequate but monitor closely. Consider increasing aeration during peak hours`);
+        recommendations.push(` Dissolved oxygen at ${do_val} mg/L is adequate but monitor closely. Consider increasing aeration during peak hours`);
     } else {
-        recommendations.push(`✅ Dissolved oxygen (${do_val} mg/L) levels are excellent for ${species}`);
+        recommendations.push(` Dissolved oxygen (${do_val} mg/L) levels are excellent for ${species}`);
     }
     
     // pH analysis
     if (ph < thresholds.ph.min) {
         const deficit = thresholds.ph.min - ph;
-        recommendations.push(`⚗️ pH is ${ph}, ${deficit.toFixed(1)} units below optimal range (${thresholds.ph.min}-${thresholds.ph.max}). Add lime or sodium bicarbonate to raise pH`);
+        recommendations.push(` pH is ${ph}, ${deficit.toFixed(1)} units below optimal range (${thresholds.ph.min}-${thresholds.ph.max}). Add lime or sodium bicarbonate to raise pH`);
     } else if (ph > thresholds.ph.max) {
         const excess = ph - thresholds.ph.max;
-        recommendations.push(`⚗️ pH is ${ph}, ${excess.toFixed(1)} units above optimal range (${thresholds.ph.min}-${thresholds.ph.max}). Add organic acids or increase CO2 to lower pH`);
+        recommendations.push(` pH is ${ph}, ${excess.toFixed(1)} units above optimal range (${thresholds.ph.min}-${thresholds.ph.max}). Add organic acids or increase CO2 to lower pH`);
     } else {
-        recommendations.push(`✅ pH (${ph}) is within optimal range for ${species}`);
+        recommendations.push(` pH (${ph}) is within optimal range for ${species}`);
     }
     
     // Future prediction analysis
@@ -898,25 +934,25 @@ function generateComprehensiveRecommendations(current, future, historical, speci
         if (Math.abs(tempChange) > 1.5) {
             const direction = tempChange > 0 ? 'rise' : 'drop';
             const action = tempChange > 0 ? 'cooling systems' : 'heating systems';
-            recommendations.push(`🔮 Next hour prediction: Temperature will ${direction} by ${Math.abs(tempChange).toFixed(1)}°C to ${futureTemp}°C. Prepare ${action}`);
+            recommendations.push(` Next hour prediction: Temperature will ${direction} by ${Math.abs(tempChange).toFixed(1)}°C to ${futureTemp}°C. Prepare ${action}`);
         }
         
         if (doChange < -0.5) {
-            recommendations.push(`🔮 Warning: Dissolved oxygen predicted to drop by ${Math.abs(doChange).toFixed(1)} mg/L to ${futureDO} mg/L. Increase aeration now`);
+            recommendations.push(` Warning: Dissolved oxygen predicted to drop by ${Math.abs(doChange).toFixed(1)} mg/L to ${futureDO} mg/L. Increase aeration now`);
         } else if (doChange > 0.5) {
-            recommendations.push(`🔮 Good news: Dissolved oxygen predicted to increase by ${doChange.toFixed(1)} mg/L to ${futureDO} mg/L`);
+            recommendations.push(` Good news: Dissolved oxygen predicted to increase by ${doChange.toFixed(1)} mg/L to ${futureDO} mg/L`);
         }
         
         if (Math.abs(phChange) > 0.2) {
             const direction = phChange > 0 ? 'increase' : 'decrease';
-            recommendations.push(`🔮 pH predicted to ${direction} by ${Math.abs(phChange).toFixed(1)} units to ${futurePH}. Monitor water chemistry`);
+            recommendations.push(` pH predicted to ${direction} by ${Math.abs(phChange).toFixed(1)} units to ${futurePH}. Monitor water chemistry`);
         }
     }
     
     // Historical trend analysis
     if (historical && historical.data && historical.data.length > 0) {
         const dataPoints = historical.data.length;
-        recommendations.push(`📊 Historical analysis: Based on ${dataPoints} data points from the past week`);
+        recommendations.push(` Historical analysis: Based on ${dataPoints} data points from the past week`);
         
         // Calculate trend
         const recentData = historical.data.slice(-3);
@@ -929,7 +965,7 @@ function generateComprehensiveRecommendations(current, future, historical, speci
             const tempTrend = recentAvgTemp - earlierAvgTemp;
             if (Math.abs(tempTrend) > 1) {
                 const direction = tempTrend > 0 ? 'increasing' : 'decreasing';
-                recommendations.push(`📈 Temperature trend: ${direction} by ${Math.abs(tempTrend).toFixed(1)}°C over the past week`);
+                recommendations.push(` Temperature trend: ${direction} by ${Math.abs(tempTrend).toFixed(1)}°C over the past week`);
             }
         }
     }
@@ -938,7 +974,7 @@ function generateComprehensiveRecommendations(current, future, historical, speci
     const speciesAdvice = getSpeciesSpecificAdvice(species, current.predicted_values, locationName);
     recommendations.push(...speciesAdvice);
     
-    return recommendations.length > 0 ? recommendations : [`✅ All parameters are optimal for ${species} cultivation in ${locationName}`];
+    return recommendations.length > 0 ? recommendations : [` All parameters are optimal for ${species} cultivation in ${locationName}`];
 }
 
 // Helper function to analyze historical data
@@ -1052,41 +1088,41 @@ function generateEnhancedRecommendations(current, future, historical, species, l
         if (temp < thresholds.temperature.min) {
             const deficit = thresholds.temperature.min - temp;
             if (deficit > 5) {
-                recommendations.push(`🚨 CRITICAL: Temperature is ${temp}°C, ${deficit.toFixed(1)}°C below minimum for ${species}. Immediate heating required!`);
+                recommendations.push(` CRITICAL: Temperature is ${temp}°C, ${deficit.toFixed(1)}°C below minimum for ${species}. Immediate heating required!`);
             } else {
-                recommendations.push(`🌡️ Temperature is ${temp}°C - Install heating system to reach optimal ${thresholds.temperature.min}-${thresholds.temperature.max}°C range`);
+                recommendations.push(` Temperature is ${temp}°C - Install heating system to reach optimal ${thresholds.temperature.min}-${thresholds.temperature.max}°C range`);
             }
         } else if (temp > thresholds.temperature.max) {
             const excess = temp - thresholds.temperature.max;
             if (excess > 5) {
-                recommendations.push(`🚨 CRITICAL: Temperature is ${temp}°C, ${excess.toFixed(1)}°C above maximum for ${species}. Emergency cooling needed!`);
+                recommendations.push(` CRITICAL: Temperature is ${temp}°C, ${excess.toFixed(1)}°C above maximum for ${species}. Emergency cooling needed!`);
             } else {
-                recommendations.push(`🌡️ Temperature is ${temp}°C - Implement cooling measures: increase water circulation, add shade, or use chillers`);
+                recommendations.push(` Temperature is ${temp}°C - Implement cooling measures: increase water circulation, add shade, or use chillers`);
             }
         } else {
-            recommendations.push(`✅ Temperature (${temp}°C) is optimal for ${species} cultivation`);
+            recommendations.push(` Temperature (${temp}°C) is optimal for ${species} cultivation`);
         }
         
         // Dissolved Oxygen recommendations
         if (do_val < thresholds.do.min) {
             const deficit = thresholds.do.min - do_val;
-            recommendations.push(`🚨 CRITICAL: Dissolved oxygen at ${do_val} mg/L is ${deficit.toFixed(1)} mg/L below minimum (${thresholds.do.min} mg/L). Install emergency aeration immediately!`);
-            recommendations.push(`💨 Recommended actions: Add air stones, increase surface agitation, reduce feeding temporarily`);
+            recommendations.push(` CRITICAL: Dissolved oxygen at ${do_val} mg/L is ${deficit.toFixed(1)} mg/L below minimum (${thresholds.do.min} mg/L). Install emergency aeration immediately!`);
+            recommendations.push(` Recommended actions: Add air stones, increase surface agitation, reduce feeding temporarily`);
         } else if (do_val < thresholds.do.min + 2) {
-            recommendations.push(`⚠️ Dissolved oxygen at ${do_val} mg/L is adequate but monitor closely. Consider increasing aeration during peak hours`);
+            recommendations.push(` Dissolved oxygen at ${do_val} mg/L is adequate but monitor closely. Consider increasing aeration during peak hours`);
         } else {
-            recommendations.push(`✅ Dissolved oxygen (${do_val} mg/L) levels are excellent for ${species}`);
+            recommendations.push(` Dissolved oxygen (${do_val} mg/L) levels are excellent for ${species}`);
         }
         
         // pH recommendations
         if (ph < thresholds.ph.min) {
             const deficit = thresholds.ph.min - ph;
-            recommendations.push(`⚗️ pH is ${ph}, ${deficit.toFixed(1)} units below optimal range (${thresholds.ph.min}-${thresholds.ph.max}). Add lime or sodium bicarbonate to raise pH`);
+            recommendations.push(` pH is ${ph}, ${deficit.toFixed(1)} units below optimal range (${thresholds.ph.min}-${thresholds.ph.max}). Add lime or sodium bicarbonate to raise pH`);
         } else if (ph > thresholds.ph.max) {
             const excess = ph - thresholds.ph.max;
-            recommendations.push(`⚗️ pH is ${ph}, ${excess.toFixed(1)} units above optimal range (${thresholds.ph.min}-${thresholds.ph.max}). Add organic acids or increase CO2 to lower pH`);
+            recommendations.push(` pH is ${ph}, ${excess.toFixed(1)} units above optimal range (${thresholds.ph.min}-${thresholds.ph.max}). Add organic acids or increase CO2 to lower pH`);
         } else {
-            recommendations.push(`✅ pH (${ph}) is within optimal range for ${species}`);
+            recommendations.push(` pH (${ph}) is within optimal range for ${species}`);
         }
     }
     
@@ -1104,16 +1140,16 @@ function generateEnhancedRecommendations(current, future, historical, species, l
             if (Math.abs(tempChange) > 1.5) {
                 const direction = tempChange > 0 ? 'rise' : 'drop';
                 const action = tempChange > 0 ? 'cooling systems' : 'heating systems';
-                recommendations.push(`🔮 Next hour prediction: Temperature will ${direction} by ${Math.abs(tempChange).toFixed(1)}°C to ${futureTemp}°C. Prepare ${action}`);
+                recommendations.push(` Next hour prediction: Temperature will ${direction} by ${Math.abs(tempChange).toFixed(1)}°C to ${futureTemp}°C. Prepare ${action}`);
             }
         }
         
         if (currentDO && futureDO) {
             const doChange = futureDO - currentDO;
             if (doChange < -0.5) {
-                recommendations.push(`🔮 Warning: Dissolved oxygen predicted to drop by ${Math.abs(doChange).toFixed(1)} mg/L to ${futureDO} mg/L. Increase aeration now`);
+                recommendations.push(` Warning: Dissolved oxygen predicted to drop by ${Math.abs(doChange).toFixed(1)} mg/L to ${futureDO} mg/L. Increase aeration now`);
             } else if (doChange > 0.5) {
-                recommendations.push(`🔮 Good news: Dissolved oxygen predicted to increase by ${doChange.toFixed(1)} mg/L to ${futureDO} mg/L`);
+                recommendations.push(` Good news: Dissolved oxygen predicted to increase by ${doChange.toFixed(1)} mg/L to ${futureDO} mg/L`);
             }
         }
         
@@ -1121,11 +1157,11 @@ function generateEnhancedRecommendations(current, future, historical, species, l
             const phChange = futurePH - currentPH;
             if (Math.abs(phChange) > 0.2) {
                 const direction = phChange > 0 ? 'increase' : 'decrease';
-                recommendations.push(`🔮 pH predicted to ${direction} by ${Math.abs(phChange).toFixed(1)} units to ${futurePH}. Monitor water chemistry`);
+                recommendations.push(` pH predicted to ${direction} by ${Math.abs(phChange).toFixed(1)} units to ${futurePH}. Monitor water chemistry`);
             }
         }
     } else if (future && future.prediction_type === 'fallback') {
-        recommendations.push(`🔮 Next hour: Conditions expected to remain stable with minor natural variations`);
+        recommendations.push(` Next hour: Conditions expected to remain stable with minor natural variations`);
     }
     
     // Historical trend recommendations
@@ -1133,21 +1169,21 @@ function generateEnhancedRecommendations(current, future, historical, species, l
         const analysis = historical.analysis;
         
         if (analysis.trend === 'declining') {
-            recommendations.push(`📉 Historical trend shows declining conditions over past 30 days. Implement preventive measures and increase monitoring frequency`);
-            recommendations.push(`🔧 Suggested actions: Review feeding schedules, check filtration systems, test water source quality`);
+            recommendations.push(` Historical trend shows declining conditions over past 30 days. Implement preventive measures and increase monitoring frequency`);
+            recommendations.push(` Suggested actions: Review feeding schedules, check filtration systems, test water source quality`);
         } else if (analysis.trend === 'improving') {
-            recommendations.push(`📈 Excellent! Conditions have been improving over the past 30 days. Continue current management practices`);
+            recommendations.push(` Excellent! Conditions have been improving over the past 30 days. Continue current management practices`);
         } else {
-            recommendations.push(`📊 Water conditions have remained stable over the past 30 days`);
+            recommendations.push(` Water conditions have remained stable over the past 30 days`);
         }
         
         // Specific historical insights
         if (analysis.temperature && analysis.temperature.optimalDays < analysis.totalDays * 0.7) {
-            recommendations.push(`🌡️ Historical insight: Temperature was suboptimal ${Math.round((1 - analysis.temperature.optimalDays/analysis.totalDays) * 100)}% of the time. Consider thermal management improvements`);
+            recommendations.push(` Historical insight: Temperature was suboptimal ${Math.round((1 - analysis.temperature.optimalDays/analysis.totalDays) * 100)}% of the time. Consider thermal management improvements`);
         }
         
         if (analysis.dissolvedOxygen && analysis.dissolvedOxygen.optimalDays < analysis.totalDays * 0.8) {
-            recommendations.push(`💨 Historical insight: Dissolved oxygen levels were concerning. Consider upgrading aeration systems`);
+            recommendations.push(` Historical insight: Dissolved oxygen levels were concerning. Consider upgrading aeration systems`);
         }
     }
     
@@ -1157,22 +1193,22 @@ function generateEnhancedRecommendations(current, future, historical, species, l
     
     // Location-specific recommendations based on name
     if (locationName.toLowerCase().includes('pond')) {
-        recommendations.push(`🏞️ Pond management: Monitor algae growth and consider beneficial bacteria supplements`);
+        recommendations.push(` Pond management: Monitor algae growth and consider beneficial bacteria supplements`);
     } else if (locationName.toLowerCase().includes('tank')) {
-        recommendations.push(`🏭 Tank system: Ensure proper filtration and regular water changes (10-15% weekly)`);
+        recommendations.push(` Tank system: Ensure proper filtration and regular water changes (10-15% weekly)`);
     } else if (locationName.toLowerCase().includes('cage')) {
-        recommendations.push(`🌊 Cage farming: Monitor current flow and check net integrity regularly`);
+        recommendations.push(` Cage farming: Monitor current flow and check net integrity regularly`);
     }
     
     // Seasonal recommendations
     const month = new Date().getMonth();
     if (month >= 5 && month <= 8) { // Summer months
-        recommendations.push(`☀️ Summer season: Increase monitoring frequency during hot weather, ensure adequate shade`);
+        recommendations.push(` Summer season: Increase monitoring frequency during hot weather, ensure adequate shade`);
     } else if (month >= 11 || month <= 1) { // Winter months
-        recommendations.push(`❄️ Winter season: Monitor for temperature drops, reduce feeding if water is too cold`);
+        recommendations.push(` Winter season: Monitor for temperature drops, reduce feeding if water is too cold`);
     }
     
-    return recommendations.length > 0 ? recommendations : [`✅ All parameters are optimal for ${species} cultivation in ${locationName}`];
+    return recommendations.length > 0 ? recommendations : [` All parameters are optimal for ${species} cultivation in ${locationName}`];
 }
 
 // Helper function for species-specific advice
@@ -1182,44 +1218,44 @@ function getSpeciesSpecificAdvice(species, values, locationName) {
     switch (species) {
         case 'salmon':
         case 'trout':
-            advice.push(`🐟 Cold-water species management: Maintain excellent water circulation, monitor for temperature spikes above 18°C`);
-            advice.push(`🌊 Ensure high dissolved oxygen levels (>7 mg/L) as cold-water fish have higher oxygen demands`);
+            advice.push(` Cold-water species management: Maintain excellent water circulation, monitor for temperature spikes above 18°C`);
+            advice.push(` Ensure high dissolved oxygen levels (>7 mg/L) as cold-water fish have higher oxygen demands`);
             if (values.water_temp > 16) {
-                advice.push(`⚠️ Temperature approaching stress levels for ${species}. Consider cooling measures`);
+                advice.push(` Temperature approaching stress levels for ${species}. Consider cooling measures`);
             }
             break;
             
         case 'tilapia':
-            advice.push(`🐟 Warm-water species: Tilapia are hardy but ensure adequate dissolved oxygen during high temperature periods`);
-            advice.push(`🌡️ Optimal temperature range is 25-32°C. Tilapia can tolerate temperature fluctuations better than most species`);
+            advice.push(` Warm-water species: Tilapia are hardy but ensure adequate dissolved oxygen during high temperature periods`);
+            advice.push(` Optimal temperature range is 25-32°C. Tilapia can tolerate temperature fluctuations better than most species`);
             if (values.do < 4) {
-                advice.push(`💨 Tilapia can survive low oxygen but growth will be affected. Increase aeration for optimal production`);
+                advice.push(` Tilapia can survive low oxygen but growth will be affected. Increase aeration for optimal production`);
             }
             break;
             
         case 'catfish':
-            advice.push(`🐟 Catfish management: These bottom-dwellers are tolerant of lower oxygen but perform best with good aeration`);
-            advice.push(`🌡️ Maintain temperature between 24-30°C for optimal growth and feeding`);
+            advice.push(` Catfish management: These bottom-dwellers are tolerant of lower oxygen but perform best with good aeration`);
+            advice.push(` Maintain temperature between 24-30°C for optimal growth and feeding`);
             break;
             
         case 'carp':
-            advice.push(`🐟 Carp cultivation: Hardy species that can tolerate various conditions but thrive in well-managed environments`);
-            advice.push(`🌱 Consider polyculture opportunities with other compatible species`);
+            advice.push(` Carp cultivation: Hardy species that can tolerate various conditions but thrive in well-managed environments`);
+            advice.push(` Consider polyculture opportunities with other compatible species`);
             break;
             
         case 'shrimp':
         case 'prawn':
-            advice.push(`🦐 Crustacean management: Monitor pH stability closely as ${species} are sensitive to pH fluctuations`);
-            advice.push(`⚗️ Maintain alkalinity levels between 80-120 ppm for optimal shell development`);
-            advice.push(`🌡️ Temperature stability is crucial - avoid rapid temperature changes`);
+            advice.push(` Crustacean management: Monitor pH stability closely as ${species} are sensitive to pH fluctuations`);
+            advice.push(` Maintain alkalinity levels between 80-120 ppm for optimal shell development`);
+            advice.push(` Temperature stability is crucial - avoid rapid temperature changes`);
             if (values.ph < 7.5) {
-                advice.push(`⚗️ pH is on the lower side for ${species}. Consider adding calcium carbonate to buffer pH`);
+                advice.push(` pH is on the lower side for ${species}. Consider adding calcium carbonate to buffer pH`);
             }
             break;
             
         default:
-            advice.push(`🐟 General aquaculture: Maintain stable water conditions and monitor all parameters regularly`);
-            advice.push(`📊 Regular water testing (2-3 times per week) is recommended for optimal fish health`);
+            advice.push(` General aquaculture: Maintain stable water conditions and monitor all parameters regularly`);
+            advice.push(` Regular water testing (2-3 times per week) is recommended for optimal fish health`);
     }
     
     return advice;
@@ -1289,9 +1325,15 @@ app.get('/api/farm/:farmId/history', async (req, res) => {
 testConnection();
 
 // Start server
+<<<<<<< HEAD
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🌍 AquaMonitor Server running at http://localhost:${PORT}`);
     console.log('🔗 Available pages:');
+=======
+app.listen(PORT, () => {
+    console.log(` AquaMonitor Server running at http://localhost:${PORT}`);
+    console.log(' Available pages:');
+>>>>>>> 1bf2986 (Latest modified)
     console.log(`   Home: http://localhost:${PORT}/home.html`);
     console.log(`   Dashboard: http://localhost:${PORT}/dashboard.html`);
     console.log(`   Data Reports: http://localhost:${PORT}/data-reports.html`);
@@ -1299,8 +1341,14 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`   Predator Detection: http://localhost:${PORT}/predator.html`);
     console.log(`   About: http://localhost:${PORT}/about.html`);
     console.log('');
+<<<<<<< HEAD
     console.log('🏭 Farm Management System Ready');
     console.log('   Register your farm or login with existing credentials');
+=======
+    console.log(' Farm Management Demo:');
+    console.log('   Farm Name: Blue Ocean Aquaculture');
+    console.log('   Farm ID: BOA2024');
+>>>>>>> 1bf2986 (Latest modified)
     
     // Auto-open browser
     const homeUrl = `http://localhost:${PORT}/home.html`;
@@ -1309,9 +1357,9 @@ app.listen(PORT, '0.0.0.0', () => {
     
     exec(`${start} ${homeUrl}`, (error) => {
         if (error) {
-            console.log(`📝 Manual access: ${homeUrl}`);
+            console.log(` Manual access: ${homeUrl}`);
         } else {
-            console.log(`🌐 Browser opened automatically`);
+            console.log(` Browser opened automatically`);
         }
     });
 });

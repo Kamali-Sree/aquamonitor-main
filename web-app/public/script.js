@@ -1473,24 +1473,24 @@ function generateSmartAdvisory() {
         if (daysUntilSeasonEnd <= 30) {
             messages.push({
                 type: 'warning',
-                text: `⚠️ HARVEST ALERT: ${species.charAt(0).toUpperCase() + species.slice(1)} cultivation season ends in ${daysUntilSeasonEnd} days. Plan your harvest soon!`
+                text: ` HARVEST ALERT: ${species.charAt(0).toUpperCase() + species.slice(1)} cultivation season ends in ${daysUntilSeasonEnd} days. Plan your harvest soon!`
             });
         } else {
             messages.push({
                 type: 'optimal',
-                text: `✅ OPTIMAL SEASON: Perfect time for ${species} cultivation! Season runs until ${thresholds.cultivationEnd}.`
+                text: ` OPTIMAL SEASON: Perfect time for ${species} cultivation! Season runs until ${thresholds.cultivationEnd}.`
             });
         }
     } else {
         if (daysUntilSeason <= 60) {
             messages.push({
                 type: 'info',
-                text: `📅 PREPARE: ${species.charAt(0).toUpperCase() + species.slice(1)} cultivation season starts in ${daysUntilSeason} days (${thresholds.cultivationStart}). Start preparing your ponds!`
+                text: ` PREPARE: ${species.charAt(0).toUpperCase() + species.slice(1)} cultivation season starts in ${daysUntilSeason} days (${thresholds.cultivationStart}). Start preparing your ponds!`
             });
         } else {
             messages.push({
                 type: 'warning',
-                text: `❄️ OFF-SEASON: Not ideal time for ${species} cultivation. Best season: ${thresholds.cultivationStart} - ${thresholds.cultivationEnd}.`
+                text: ` OFF-SEASON: Not ideal time for ${species} cultivation. Best season: ${thresholds.cultivationStart} - ${thresholds.cultivationEnd}.`
             });
         }
     }
@@ -1508,7 +1508,7 @@ function generateSmartAdvisory() {
         if (tempOK && doOK && phOK) {
             messages.push({
                 type: 'optimal',
-                text: `🌊 WATER QUALITY: Excellent! All parameters optimal for ${species} (Temp: ${temp}°C, DO: ${do_val} mg/L, pH: ${ph})`
+                text: ` WATER QUALITY: Excellent! All parameters optimal for ${species} (Temp: ${temp}°C, DO: ${do_val} mg/L, pH: ${ph})`
             });
         } else {
             let issues = [];
@@ -1518,7 +1518,7 @@ function generateSmartAdvisory() {
             
             messages.push({
                 type: 'critical',
-                text: `⚠️ WATER ISSUES: ${issues.join(', ')}. Consider water treatment before stocking.`
+                text: ` WATER ISSUES: ${issues.join(', ')}. Consider water treatment before stocking.`
             });
         }
     }
@@ -1528,7 +1528,7 @@ function generateSmartAdvisory() {
         const climate = getClimateAdvice(currentLocation.latitude);
         messages.push({
             type: 'info',
-            text: `🌍 LOCATION: ${climate} Monitor weather patterns for optimal cultivation timing.`
+            text: ` LOCATION: ${climate} Monitor weather patterns for optimal cultivation timing.`
         });
     }
     
