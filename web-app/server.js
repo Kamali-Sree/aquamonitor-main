@@ -10,10 +10,16 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database configuration - Render compatible
+// Database configuration - Local PostgreSQL
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    user: 'postgres',
+    host: 'localhost', 
+    database: 'aquamonitor',
+    password: 'root',
+    port: 5432,
+    // For production deployment, use environment variables:
+    // connectionString: process.env.DATABASE_URL,
+    // ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 // Test database connection
@@ -41,11 +47,20 @@ const upload = multer({
         fileSize: 10 * 1024 * 1024 // 10MB limit
     },
     fileFilter: (req, file, cb) => {
-        // Accept images and videos
-        if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
-            cb(null, true);
+        // Accept images and videos for predator detection, only images for disease detection
+        if (req.path === '/api/predict-disease') {
+            if (file.mimetype.startsWith('image/')) {
+                cb(null, true);
+            } else {
+                cb(new Error('Only image files are allowed for disease detection'), false);
+            }
         } else {
-            cb(new Error('Only image and video files are allowed'), false);
+            // For predator detection, accept both images and videos
+            if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+                cb(null, true);
+            } else {
+                cb(new Error('Only image and video files are allowed'), false);
+            }
         }
     }
 });
@@ -111,7 +126,75 @@ app.get('/predator.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'predator.html'));
 });
 
-// Test endpoint for predator detection
+app.get('/disease.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'disease.html'));
+});
+
+// Dedicated Fish Disease Detection API
+app.post('/api/predict-disease', upload.single('image'), (req, res) => {
+    console.log('🐟 Fish disease detection request received');
+    
+    if (!req.file) {
+        return res.status(400).json({
+            success: false,
+            error: 'No image file uploaded. Please select an image.'
+        });
+    }
+    
+    console.log(' Processing file for disease check:', req.file.filename);
+    
+    // Use the exact disease detection from Smart Fish Monitoring
+    const python = spawn('python', [
+        path.join(__dirname, 'predict_disease.py'),
+        req.file.path
+    ]);
+    
+    let result = '';
+    let errorOutput = '';
+    
+    python.stdout.on('data', (data) => {
+        result += data.toString();
+    });
+    
+    python.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+        console.error(' Python Disease script stderr:', data.toString());
+    });
+    
+    python.on('close', (code) => {
+        console.log(' Python Disease process completed with code:', code);
+        
+        // Clean up uploaded image file from local uploads directory
+        const fs = require('fs');
+        fs.unlink(req.file.path, (err) => {
+            if (err) console.error(' Error deleting file:', err.message);
+        });
+        
+        if (code !== 0) {
+            return res.status(500).json({
+                success: false,
+                error: 'Disease detection processing failed',
+                details: errorOutput
+            });
+        }
+        
+        try {
+            const prediction = JSON.parse(result);
+            res.json({
+                success: true,
+                disease: prediction.disease,
+                confidence: prediction.confidence,
+                timestamp: new Date().toISOString()
+            });
+        } catch (e) {
+            res.status(500).json({
+                success: false,
+                error: 'Failed to parse disease prediction result',
+                details: result
+            });
+        }
+    });
+});
 app.get('/api/test-predator', (req, res) => {
     console.log(' Testing predator detection endpoint');
     res.json({
@@ -390,7 +473,20 @@ app.get('/api/fetch-data', (req, res) => {
 app.post('/api/predict-future', (req, res) => {
     const { latitude, longitude, target_datetime, species } = req.body;
     
-    console.log(' Future prediction request:', req.body);
+    console.log('🔮 Future prediction request:', {
+        latitude,
+        longitude, 
+        target_datetime,
+        species
+    });
+    
+    // Validate required parameters
+    if (!latitude || !longitude || !target_datetime) {
+        return res.status(400).json({ 
+            success: false,
+            error: 'Missing required parameters: latitude, longitude, target_datetime' 
+        });
+    }
     
     // Fix species handling
     const safeSpecies = (species && typeof species === 'string') ? species.toLowerCase() : 'general';
@@ -412,21 +508,37 @@ app.post('/api/predict-future', (req, res) => {
 
     python.stderr.on('data', (data) => {
         const msg = data.toString();
-        if (!msg.includes('oneDNN') && !msg.includes('UserWarning') && !msg.includes('INFO:')) {
+        console.log('🔮 Python stderr:', msg);
+        if (!msg.includes('oneDNN') && !msg.includes('UserWarning') && !msg.includes('INFO:') && !msg.includes('Future prediction:')) {
             errorOutput += msg;
         }
     });
 
     python.on('close', (code) => {
+        console.log('🔮 Python process completed with code:', code);
+        console.log('🔮 Raw output:', result);
+        
         if (code !== 0 && errorOutput) {
-            return res.status(500).json({ error: 'Future prediction failed', details: errorOutput });
+            console.error('❌ Future prediction failed:', errorOutput);
+            return res.status(500).json({ 
+                success: false,
+                error: 'Future prediction failed', 
+                details: errorOutput 
+            });
         }
         
         try {
             const parsed = JSON.parse(result);
+            console.log('✅ Future prediction successful:', parsed.success ? 'Success' : 'Failed');
             res.json(parsed);
         } catch (e) {
-            res.status(500).json({ error: 'Future prediction failed', details: result });
+            console.error('❌ JSON parse error:', e.message);
+            console.error('❌ Raw result:', result);
+            res.status(500).json({ 
+                success: false,
+                error: 'Future prediction failed', 
+                details: 'Invalid response format: ' + result 
+            });
         }
     });
 });
@@ -1312,6 +1424,8 @@ app.listen(PORT, () => {
     console.log(`   Data Reports: http://localhost:${PORT}/data-reports.html`);
     console.log(`   Farm Management: http://localhost:${PORT}/multi-location.html`);
     console.log(`   Predator Detection: http://localhost:${PORT}/predator.html`);
+    console.log(`   Disease Detection: http://localhost:${PORT}/disease.html`);
+    console.log(`   Disease Detection: http://localhost:${PORT}/disease.html`);
     console.log(`   About: http://localhost:${PORT}/about.html`);
     console.log('');
     console.log(' Farm Management System Ready');

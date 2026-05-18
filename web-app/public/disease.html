@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaMonitor - Disease Detection</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .page-hero {
+            padding: 4rem 0;
+            text-align: center;
+        }
+
+        .page-hero h1 {
+            font-size: 2.8rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .page-hero p {
+            max-width: 760px;
+            margin: 0 auto;
+            color: var(--text-secondary);
+        }
+
+        .section-card {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .upload-panel {
+            border: 2px dashed var(--border);
+            border-radius: 18px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.2s ease;
+            background: var(--surface);
+            cursor: pointer;
+        }
+
+        .upload-panel:hover {
+            border-color: var(--primary-color);
+            background: var(--surface-hover);
+        }
+
+        .upload-preview {
+            display: none;
+            margin-top: 1.5rem;
+            gap: 1rem;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            display: flex;
+        }
+
+        .upload-preview img {
+            width: 100%;
+            max-width: 680px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            justify-content: center;
+        }
+
+        .link-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .api-card {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 1.5rem;
+            background: var(--surface);
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .api-card h3 {
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .api-card p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .api-card a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .results-card {
+            display: none;
+            margin-top: 1.5rem;
+            border-radius: 18px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .confidence-bar-container {
+            background: var(--surface-hover);
+            border-radius: 999px;
+            height: 14px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .confidence-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--primary-color);
+            border-radius: 999px;
+            transition: width 0.3s ease;
+        }
+
+        .metric-box {
+            border-radius: 16px;
+            background: var(--background);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            min-height: 120px;
+        }
+
+        .metric-box strong {
+            display: block;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.35rem 0.9rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: var(--surface-hover);
+        }
+
+        .small-text {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo">AquaMonitor</div>
+            <nav class="nav">
+                <a href="home.html">Home</a>
+                <a href="dashboard.html">Dashboard</a>
+                <a href="data-reports.html">Data Reports</a>
+                <a href="multi-location.html">Farm Management</a>
+                <a href="predator.html">Predator Detection</a>
+                <a href="disease.html" class="active">Disease Detection</a>
+                <a href="about.html">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="page-hero">
+            <div class="container">
+                <h1>Fish Disease Detection</h1>
+                <p>Use AquaMonitor's disease upload interface in a consistent application layout. This page also gives quick access to the main AquaMonitor API endpoints for prediction, forecasting, historical data, and predator detection.</p>
+            </div>
+        </section>
+
+        <section class="container">
+            <div class="section-card">
+                <div class="section-title">Disease Detection</div>
+                <div class="upload-panel" id="dropZone">
+                    <p class="status-pill">Upload fish image</p>
+                    <h2>Drag and drop your image here</h2>
+                    <p class="small-text">Supported formats: JPG, PNG, GIF</p>
+                    <button class="btn btn-secondary" type="button" id="browseBtn">Browse files</button>
+                    <input type="file" id="fileInput" accept="image/*">
+                </div>
+
+                <div class="upload-preview" id="previewContainer">
+                    <img id="imagePreview" alt="Uploaded fish preview">
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="analyzeBtn" disabled>Detect Disease</button>
+                        <button class="btn btn-secondary" id="clearBtn" type="button">Clear</button>
+                    </div>
+                </div>
+
+                <div class="results-card" id="resultsPanel">
+                    <div class="section-title">Analysis Result</div>
+                    <div class="results-grid">
+                        <div class="metric-box">
+                            <strong>Detected Condition</strong>
+                            <span id="verdictBadge" class="status-pill">Waiting for image</span>
+                        </div>
+                        <div class="metric-box">
+                            <strong>Confidence</strong>
+                            <span id="confidenceText">0%</span>
+                        </div>
+                        <div class="metric-box">
+                            <strong>Confidence Bar</strong>
+                            <div class="confidence-bar-container" style="margin-top: 0.75rem; background: var(--surface-hover); border-radius: 999px; height: 14px; overflow: hidden;">
+                                <div id="confidenceBar" class="confidence-bar" style="width: 0%; height: 100%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- <div class="section-card">
+                <div class="section-title">API Quick Access</div>
+                <div class="link-grid">
+                    <div class="api-card">
+                        <div>
+                            <h3>Water Quality Predict</h3>
+                            <p>Access the core water quality prediction endpoint.</p>
+                        </div>
+                        <a class="btn btn-secondary btn-block" href="/api/predict">/api/predict</a>
+                    </div>
+                    <div class="api-card">
+                        <div>
+                            <h3>Future Prediction</h3>
+                            <p>Query the forecasting API for future water quality parameters.</p>
+                        </div>
+                        <a class="btn btn-secondary btn-block" href="/api/predict-future">/api/predict-future</a>
+                    </div>
+                    <div class="api-card">
+                        <div>
+                            <h3>Fetch Historical Data</h3>
+                            <p>Retrieve historical readings with the universal data fetch endpoint.</p>
+                        </div>
+                        <a class="btn btn-secondary btn-block" href="/api/fetch-data">/api/fetch-data</a>
+                    </div>
+                    <div class="api-card">
+                        <div>
+                            <h3>Predator Detection</h3>
+                            <p>Jump to the predator detection API endpoint.</p>
+                        </div>
+                        <a class="btn btn-secondary btn-block" href="/api/predict-predator">/api/predict-predator</a>
+                    </div>
+                </div>
+            </div> -->
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-section">
+                <h4>AquaMonitor</h4>
+                <p>Professional water quality monitoring solution for aquaculture industry.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="home.html">Home</a></li>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="data-reports.html">Data Reports</a></li>
+                    <li><a href="multi-location.html">Farm Management</a></li>
+                    <li><a href="predator.html">Predator Detection</a></li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>Email: info@aquamonitor.com</p>
+                <p>Phone: +91 88709 58705</p>
+            </div>
+        </div>
+        <div class="container footer-bottom">
+            &copy; 2026 AquaMonitor. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const dropZone = document.getElementById('dropZone');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const resultsPanel = document.getElementById('resultsPanel');
+        const verdictBadge = document.getElementById('verdictBadge');
+        const confidenceText = document.getElementById('confidenceText');
+        const confidenceBar = document.getElementById('confidenceBar');
+
+        let targetFile = null;
+
+        browseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach(name => {
+            dropZone.addEventListener(name, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--primary-color)';
+                dropZone.style.background = 'var(--surface-hover)';
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(name => {
+            dropZone.addEventListener(name, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border)';
+                dropZone.style.background = 'var(--surface)';
+            });
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            targetFile = null;
+            previewContainer.style.display = 'none';
+            resultsPanel.style.display = 'none';
+            imagePreview.src = '';
+            analyzeBtn.disabled = true;
+        });
+
+        analyzeBtn.addEventListener('click', async () => {
+            if (!targetFile) return;
+
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerText = 'Detecting...';
+
+            const formData = new FormData();
+            formData.append('image', targetFile);
+
+            try {
+                const response = await fetch('/api/predict-disease', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    renderResults(data.disease || 'Unknown', data.confidence || 0);
+                } else {
+                    alert('Diagnostic tracking failed: ' + (data.error || 'Unknown Error'));
+                }
+            } catch (error) {
+                console.error('API Error:', error);
+                alert('Communication with AquaMonitor core module interrupted.');
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerText = 'Detect Disease';
+            }
+        });
+
+        function handleFile(file) {
+            targetFile = file;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                previewContainer.style.display = 'flex';
+                resultsPanel.style.display = 'none';
+                analyzeBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderResults(disease, confidence) {
+            resultsPanel.style.display = 'block';
+            verdictBadge.innerText = disease.replace(/_/g, ' ');
+
+            const parsedConfidence = Number(confidence);
+            const normalizedConfidence = Number.isFinite(parsedConfidence)
+                ? Math.max(0, Math.min(100, parsedConfidence > 1 ? parsedConfidence : parsedConfidence * 100))
+                : 0;
+            const confidencePercent = Math.round(normalizedConfidence);
+
+            confidenceText.innerText = `${confidencePercent}%`;
+            confidenceBar.style.width = `${confidencePercent}%`;
+
+            if (disease.toLowerCase().includes('healthy')) {
+                verdictBadge.style.background = '#dcfce7';
+                verdictBadge.style.color = '#15803d';
+            } else if (disease.toLowerCase().includes('bacterial')) {
+                verdictBadge.style.background = '#fee2e2';
+                verdictBadge.style.color = '#b91c1c';
+            } else {
+                verdictBadge.style.background = '#fef3c7';
+                verdictBadge.style.color = '#b45309';
+            }
+        }
+    </script>
+</body>
+</html>

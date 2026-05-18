@@ -415,15 +415,26 @@ function switchPredictionMode(mode) {
         const futureDateTime = document.getElementById('futureDateTime');
         if (futureDateTime) {
             const now = new Date();
+            // Set minimum to 1 hour from now
             const minDateTime = new Date(now.getTime() + 60 * 60 * 1000);
             const minDateTimeString = minDateTime.toISOString().slice(0, 16);
             futureDateTime.min = minDateTimeString;
             
+            // Set maximum to 1 year from now
             const maxDateTime = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
             const maxDateTimeString = maxDateTime.toISOString().slice(0, 16);
             futureDateTime.max = maxDateTimeString;
             
-            futureDateTime.value = '';
+            // Set default value to 1 hour from now if empty
+            if (!futureDateTime.value) {
+                futureDateTime.value = minDateTimeString;
+            }
+            
+            console.log('Future datetime initialized:', {
+                min: minDateTimeString,
+                max: maxDateTimeString,
+                current: futureDateTime.value
+            });
         }
     }
     
@@ -677,6 +688,12 @@ function runFuturePrediction() {
     }
     
     showLoading('LSTM Future Prediction Analysis');
+    updateLoadingStep('Validating parameters...', 10);
+    
+    // Format datetime for API (ensure consistent format)
+    const isoDateTime = targetDate.toISOString().slice(0, 19); // Remove timezone info
+    
+    updateLoadingStep('Starting LSTM future forecast...', 20);
     
     fetch(addCacheBuster('/api/predict-future'), {
         method: 'POST',
@@ -684,28 +701,37 @@ function runFuturePrediction() {
         body: JSON.stringify({
             latitude: coords.lat,
             longitude: coords.lon,
-            target_datetime: datetime,
+            target_datetime: isoDateTime,
             species: document.getElementById('species-select').value
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        updateLoadingStep('Processing LSTM prediction...', 60);
+        return response.json();
+    })
     .then(result => {
+        updateLoadingStep('Generating forecast results...', 90);
         if (result.success) {
-            // Future predictions use specialized LSTM future forecasting
-            handleLSTMPredictionResponse({
-                quality_score: result.quality_score,
-                quality_level: result.quality_level,
-                color: result.color,
-                recommendations: result.recommendations,
-                timestamp: result.timestamp,
-                predicted_values: result.predicted_values,
-                prediction_time: result.target_datetime
-            });
+            setTimeout(() => {
+                // Future predictions use specialized LSTM future forecasting
+                handleLSTMPredictionResponse({
+                    quality_score: result.quality_score,
+                    quality_level: result.quality_level,
+                    color: result.color,
+                    recommendations: result.recommendations,
+                    timestamp: result.timestamp,
+                    predicted_values: result.predicted_values,
+                    prediction_time: result.target_datetime
+                });
+            }, 500);
         } else {
             throw new Error(result.error || 'Future prediction failed');
         }
     })
-    .catch(error => alert('LSTM future prediction failed: ' + error.message))
+    .catch(error => {
+        console.error('Future prediction error:', error);
+        alert('LSTM future prediction failed: ' + error.message);
+    })
     .finally(() => hideLoading());
 }
 
@@ -834,14 +860,23 @@ async function loadHistoricalDataForAnalytics(lat, lon, startDate, endDate) {
         updateLoadingStep('Processing weather data...', 70);
         const csvData = await res.json();
         
-        if (csvData.error) { alert('Error loading data: ' + csvData.error); return; }
+        if (csvData.error) { 
+            alert('Error loading data: ' + csvData.error); 
+            return; 
+        }
         
         if (csvData.data && csvData.data.length > 0) {
             updateLoadingStep('Preparing analytics table...', 85);
             
             // Store analytics data
             window.analyticsData = csvData.data;
-            window.analyticsCsvData = csvData.csv;
+            
+            // Generate CSV content with proper headers
+            let csvContent = 'DateTime,"Air Temp (°C)","Humidity (%)","Rainfall (mm)","Water Temp (°C)","Dissolved O₂ (mg/L)","pH Level"\n';
+            csvData.data.forEach(r => { 
+                csvContent += `"${r.datetime}",${r.air_temp},${r.humidity},${r.rain},${r.water_temp},${r.do},${r.ph}\n`; 
+            });
+            window.analyticsCsvData = csvContent;
             
             // Update analytics table
             const tbody = document.getElementById('dataTableBody');
@@ -849,19 +884,37 @@ async function loadHistoricalDataForAnalytics(lat, lon, startDate, endDate) {
                 tbody.innerHTML = '';
                 csvData.data.forEach(row => {
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${row.datetime}</td><td>${row.air_temp}</td><td>${row.humidity}</td><td>${row.rain}</td><td>${row.water_temp}</td><td>${row.do}</td><td>${row.ph}</td>`;
+                    tr.innerHTML = `
+                        <td>${new Date(row.datetime).toLocaleString()}</td>
+                        <td>${row.air_temp}°C</td>
+                        <td>${row.humidity}%</td>
+                        <td>${row.rain} mm</td>
+                        <td>${row.water_temp}°C</td>
+                        <td>${row.do} mg/L</td>
+                        <td>${row.ph}</td>
+                    `;
                     tbody.appendChild(tr);
                 });
+                
+                // Update download button to show data is ready
+                const downloadBtn = document.getElementById('downloadBtn');
+                if (downloadBtn) {
+                    downloadBtn.textContent = `Download CSV (${csvData.data.length} records)`;
+                    downloadBtn.disabled = false;
+                }
             }
             
             // Save analytics data to session storage
             saveState();
             
             updateLoadingStep('Analytics ready!', 95);
+            
+            console.log(`Analytics data loaded: ${csvData.data.length} records`);
         } else {
             alert('No data available for this location and date range.');
         }
     } catch (err) {
+        console.error('Analytics data loading error:', err);
         alert('Failed to load data: ' + err.message);
     }
 }
@@ -874,9 +927,24 @@ function restoreAnalyticsTable() {
         tbody.innerHTML = '';
         window.analyticsData.forEach(row => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${row.datetime}</td><td>${row.air_temp}</td><td>${row.humidity}</td><td>${row.rain}</td><td>${row.water_temp}</td><td>${row.do}</td><td>${row.ph}</td>`;
+            tr.innerHTML = `
+                <td>${new Date(row.datetime).toLocaleString()}</td>
+                <td>${row.air_temp}°C</td>
+                <td>${row.humidity}%</td>
+                <td>${row.rain} mm</td>
+                <td>${row.water_temp}°C</td>
+                <td>${row.do} mg/L</td>
+                <td>${row.ph}</td>
+            `;
             tbody.appendChild(tr);
         });
+        
+        // Update download button
+        const downloadBtn = document.getElementById('downloadBtn');
+        if (downloadBtn) {
+            downloadBtn.textContent = `Download CSV (${window.analyticsData.length} records)`;
+            downloadBtn.disabled = false;
+        }
     }
 }
 
@@ -1897,20 +1965,29 @@ window.addEventListener('load', () => {
     setTimeout(() => generateSmartAdvisory(), 500);
     
     // Initialize future datetime picker with proper min value
-    const futureDatetime = document.getElementById('futureDatetime');
-    if (futureDatetime) {
+    const futureDateTime = document.getElementById('futureDateTime');
+    if (futureDateTime) {
         const now = new Date();
         // Add 1 hour to current time as minimum
         const minDateTime = new Date(now.getTime() + 60 * 60 * 1000);
         const minDateTimeString = minDateTime.toISOString().slice(0, 16);
-        futureDatetime.min = minDateTimeString;
+        futureDateTime.min = minDateTimeString;
         
         // Set max to 1 year from now
         const maxDateTime = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
         const maxDateTimeString = maxDateTime.toISOString().slice(0, 16);
-        futureDatetime.max = maxDateTimeString;
+        futureDateTime.max = maxDateTimeString;
         
-        console.log('Future datetime picker initialized:', minDateTimeString, 'to', maxDateTimeString);
+        // Set default value to 1 hour from now if empty
+        if (!futureDateTime.value) {
+            futureDateTime.value = minDateTimeString;
+        }
+        
+        console.log('Future datetime picker initialized:', {
+            min: minDateTimeString,
+            max: maxDateTimeString,
+            current: futureDateTime.value
+        });
     }
     // Initialize empty states for charts
     for (let i = 1; i <= 4; i++) {
@@ -1928,81 +2005,101 @@ window.addEventListener('load', () => {
     const downloadBtn = document.getElementById('downloadBtn');
     if (downloadBtn) {
         downloadBtn.addEventListener('click', () => {
-            // Check if we're on data reports page and use analytics data
-            const isDataReportsPage = window.location.pathname.includes('data-reports') || window.location.href.includes('data-reports');
-            
             console.log('Download CSV clicked');
-            console.log('Current URL:', window.location.href);
-            console.log('Current pathname:', window.location.pathname);
-            console.log('Is data reports page:', isDataReportsPage);
-            console.log('window.analyticsData:', window.analyticsData);
-            console.log('window.analyticsCsvData:', window.analyticsCsvData);
-            console.log('allChartData:', allChartData);
             
-            // Use analytics CSV data if available, otherwise use analytics data, otherwise use chart data
+            // Check if we're on data reports page
+            const isDataReportsPage = window.location.pathname.includes('data-reports') || 
+                                    window.location.href.includes('data-reports') ||
+                                    document.title.includes('Data Reports');
+            
+            console.log('Is data reports page:', isDataReportsPage);
+            console.log('Analytics data available:', !!window.analyticsData);
+            console.log('Analytics CSV available:', !!window.analyticsCsvData);
+            
             let csvContent = '';
             let filename = 'water_quality_data.csv';
             
-            if (isDataReportsPage && window.analyticsCsvData) {
-                // Use pre-formatted CSV data from analytics
-                csvContent = window.analyticsCsvData;
+            if (isDataReportsPage) {
+                // Data reports page - use analytics data
+                if (window.analyticsCsvData) {
+                    csvContent = window.analyticsCsvData;
+                } else if (window.analyticsData && window.analyticsData.length > 0) {
+                    // Generate CSV from analytics data
+                    csvContent = 'DateTime,Air Temp (°C),Humidity (%),Rainfall (mm),Water Temp (°C),Dissolved O₂ (mg/L),pH Level\n';
+                    window.analyticsData.forEach(r => { 
+                        csvContent += `"${r.datetime}",${r.air_temp},${r.humidity},${r.rain},${r.water_temp},${r.do},${r.ph}\n`; 
+                    });
+                } else {
+                    alert('No data available. Please load data first using the "Load Data" button.');
+                    return;
+                }
+                
                 const fromDate = document.getElementById('analyticsFromDate')?.value || 'all';
                 const toDate = document.getElementById('analyticsToDate')?.value || 'data';
-                filename = `water_quality_${fromDate}_to_${toDate}.csv`;
-                console.log('Using analytics CSV data');
+                filename = `aquamonitor_data_${fromDate}_to_${toDate}.csv`;
             } else {
-                // Generate CSV from data array
-                const dataToDownload = isDataReportsPage ? window.analyticsData : allChartData;
-                
-                if (!dataToDownload || !dataToDownload.length) { 
-                    console.log('No data available for download');
-                    alert(isDataReportsPage ? 'No data available. Please load data first using the "Load Data" button.' : 'No data available.'); 
-                    return; 
+                // Dashboard page - use chart data
+                if (!allChartData || !allChartData.length) {
+                    alert('No data available. Please load chart data first.');
+                    return;
                 }
                 
-                console.log('Data to download:', dataToDownload.length, 'rows');
+                let data = allChartData;
+                const from = document.getElementById('csvFromDate')?.value;
+                const to = document.getElementById('csvToDate')?.value;
                 
-                // For data reports page, use the loaded date range; for dashboard, use CSV date inputs
-                let data = dataToDownload;
-                let fromDate = '', toDate = '';
-                
-                if (isDataReportsPage) {
-                    // Data reports page - data is already filtered by the selected date range
-                    fromDate = document.getElementById('analyticsFromDate')?.value || 'all';
-                    toDate = document.getElementById('analyticsToDate')?.value || 'data';
-                    console.log('Data reports date range:', fromDate, 'to', toDate);
-                } else {
-                    // Dashboard page - apply CSV date filter if specified
-                    const from = document.getElementById('csvFromDate') ? document.getElementById('csvFromDate').value : '';
-                    const to = document.getElementById('csvToDate') ? document.getElementById('csvToDate').value : '';
-                    if (from && to) {
-                        const f = new Date(from), t = new Date(to);
-                        t.setHours(23,59,59,999);
-                        data = allChartData.filter(r => { const d = new Date(r.datetime); return d >= f && d <= t; });
-                    }
-                    fromDate = from || 'all';
-                    toDate = to || 'data';
+                if (from && to) {
+                    const f = new Date(from), t = new Date(to);
+                    t.setHours(23,59,59,999);
+                    data = allChartData.filter(r => { 
+                        const d = new Date(r.datetime); 
+                        return d >= f && d <= t; 
+                    });
                 }
                 
-                if (!data || !data.length) { 
-                    console.log('No data after filtering');
-                    alert('No data for selected range.'); 
-                    return; 
+                if (!data || !data.length) {
+                    alert('No data for selected range.');
+                    return;
                 }
                 
-                console.log('Final data for CSV:', data.length, 'rows');
+                csvContent = 'DateTime,Air Temp (°C),Humidity (%),Rainfall (mm),Water Temp (°C),Dissolved O₂ (mg/L),pH Level\n';
+                data.forEach(r => { 
+                    csvContent += `"${r.datetime}",${r.air_temp},${r.humidity},${r.rain},${r.water_temp},${r.do},${r.ph}\n`; 
+                });
                 
-                csvContent = 'DateTime,Air Temp,Humidity,Rain,Water Temp,DO,pH\n';
-                data.forEach(r => { csvContent += `${r.datetime},${r.air_temp},${r.humidity},${r.rain},${r.water_temp},${r.do},${r.ph}\n`; });
-                filename = `water_quality_${fromDate}_to_${toDate}.csv`;
+                const fromDate = from || 'all';
+                const toDate = to || 'data';
+                filename = `dashboard_data_${fromDate}_to_${toDate}.csv`;
             }
             
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv' }));
-            a.download = filename;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            
-            console.log('CSV download initiated');
+            // Create and trigger download
+            try {
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                console.log('CSV download completed:', filename);
+                
+                // Show success message
+                const originalText = downloadBtn.textContent;
+                downloadBtn.textContent = 'Downloaded!';
+                downloadBtn.style.background = '#22c55e';
+                setTimeout(() => {
+                    downloadBtn.textContent = originalText;
+                    downloadBtn.style.background = '';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('CSV download error:', error);
+                alert('Failed to download CSV file. Please try again.');
+            }
         });
     }
 
