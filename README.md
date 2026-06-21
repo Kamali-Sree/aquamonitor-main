@@ -178,6 +178,7 @@ Open `http://localhost:3000` in your browser.
 |-------|----------|
 | Port 3000 in use | Kill existing process or change `PORT` in server.js |
 | Model not found | Run `python train_model_universal.py` from root |
+| Keras 3 loading errors | If upgrading TensorFlow, retrain the model natively using `python train_model_universal.py` to fix layer compatibility issues. |
 | Python errors | Run `pip install -r requirements.txt` |
 | Database errors | Check PostgreSQL is running and `.env` credentials are correct |
 | Charts not loading | Hard refresh browser (Ctrl+F5) |
