@@ -15,7 +15,7 @@ const pool = new Pool({
     user: 'postgres',
     host: 'localhost', 
     database: 'aquamonitor',
-    password: 'root',
+    password: 'kamalimsd@127',
     port: 5432,
     // For production deployment, use environment variables:
     // connectionString: process.env.DATABASE_URL,
