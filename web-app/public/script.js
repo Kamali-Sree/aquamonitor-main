@@ -371,6 +371,15 @@ window.addEventListener('click', function(event) {
     if (event.target === modal) {
         closeLSTMModal();
     }
+    
+    // Close location dropdowns when clicking outside
+    if (!event.target.closest('.location-input')) {
+        const mainDropdown = document.getElementById('mainLocationDropdown');
+        if (mainDropdown) mainDropdown.classList.remove('show');
+        
+        const analyticsDropdown = document.getElementById('analyticsLocationDropdown');
+        if (analyticsDropdown) analyticsDropdown.classList.remove('show');
+    }
 });
 
 // Cache busting for API requests
@@ -401,14 +410,19 @@ function switchPredictionMode(mode) {
     currentPredictionMode = mode;
     
     // Update tab appearance
-    document.getElementById('currentTab').classList.toggle('active', mode === 'current');
-    document.getElementById('manualTab').classList.toggle('active', mode === 'manual');
-    document.getElementById('futureTab').classList.toggle('active', mode === 'future');
+    document.getElementById('currentTab')?.classList.toggle('active', mode === 'current');
+    document.getElementById('manualTab')?.classList.toggle('active', mode === 'manual');
+    document.getElementById('futureTab')?.classList.toggle('active', mode === 'future');
     
     // Show/hide prediction inputs
-    document.getElementById('currentPrediction').style.display = mode === 'current' ? 'block' : 'none';
-    document.getElementById('manualPrediction').style.display = mode === 'manual' ? 'block' : 'none';
-    document.getElementById('futurePrediction').style.display = mode === 'future' ? 'block' : 'none';
+    const currPred = document.getElementById('currentPrediction');
+    if (currPred) currPred.style.display = mode === 'current' ? 'block' : 'none';
+    
+    const manPred = document.getElementById('manualPrediction');
+    if (manPred) manPred.style.display = mode === 'manual' ? 'block' : 'none';
+    
+    const futPred = document.getElementById('futurePrediction');
+    if (futPred) futPred.style.display = mode === 'future' ? 'block' : 'none';
     
     // Initialize future datetime picker when future mode is selected
     if (mode === 'future') {
@@ -476,6 +490,10 @@ function selectMainLocation(name, lat, lon) {
     document.getElementById('mainLongitude').value = lon;
     document.getElementById('mainLocationHint').textContent = `Selected: ${name} (${lat}, ${lon})`;
     document.getElementById('mainLocationDropdown').classList.remove('show');
+    
+    // Update global location so charts and other components use the selected city
+    currentLocation = { latitude: lat, longitude: lon };
+    saveState();
 }
 
 function getLocationCoordinates() {
@@ -1127,21 +1145,9 @@ function loadSavedState() {
             setTimeout(() => restorePredictionUI(lastPrediction), 100);
         }
         
-        if (savedMode) switchMode(savedMode);
-        else {
-            // Default to no mode selected - all forms hidden
-            currentMode = null;
-            const forms = ['predictionForm', 'locationForm', 'presetForm', 'futureForm'];
-            forms.forEach(formId => {
-                const form = document.getElementById(formId);
-                if (form) form.style.display = 'none';
-            });
-            const buttons = ['manualBtn', 'locationBtn', 'presetBtn', 'futureBtn'];
-            buttons.forEach(btnId => {
-                const btn = document.getElementById(btnId);
-                if (btn) btn.classList.remove('active');
-            });
-        }
+        // Initialize default modes
+        switchLocationMode('coords');
+        switchPredictionMode('current');
         
         // Restore analytics table if on analytics page and data exists
         if (window.analyticsData && (window.location.pathname.includes('analytics') || window.location.href.includes('analytics'))) {

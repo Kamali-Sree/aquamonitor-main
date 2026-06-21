@@ -76,58 +76,62 @@ def run_inference(model_path, image_path):
 def parse_detections(output, confidence_threshold=0.25):
     """
     Parse TFLite YOLO output to extract detections.
-    Output shape: (1, 9, 8400) where:
-    - Batch: 1
-    - 9 channels: [x, y, w, h, class_0, class_1, class_2, class_3, class_4]
-    - 8400 anchors: YOLO grid (80x80 + 40x40 + 20x20)
-    
-    Note: Channels 4-8 are class scores for 5 classes. Objectness = max(class_scores).
+    Handles multiple output formats.
     """
     detections = []
+    num_classes = len(CLASS_NAMES)
     
     try:
-        # Handle shape (1, 9, 8400) - YOLO format
-        if output.ndim == 3 and output.shape[1] == 9 and output.shape[2] == 8400:
-            # Remove batch dimension: (9, 8400)
+        # Handle shape (1, 9, 8400) - Standard YOLO format
+        if output.ndim == 3 and output.shape[1] >= 5:
+            # Remove batch dimension
             output = output[0]
             
-            # Extract components
-            bbox = output[:4]  # Channels 0-3: x, y, w, h (4, 8400)
-            class_scores = output[4:]  # Channels 4-8: class probabilities (5, 8400)
+            # Extract class scores (skip first 4 which are bbox)
+            class_scores = output[4:, :]
             
             # Objectness = maximum class score for each anchor
-            objectness = np.max(class_scores, axis=0)  # (8400,)
-            
-            # Find detections where objectness > threshold
-            high_conf_mask = objectness > confidence_threshold
-            high_conf_indices = np.where(high_conf_mask)[0]
-            
-            # Extract detections
-            for idx in high_conf_indices:
-                # Get class with highest probability
-                class_probs = class_scores[:, idx]
-                class_id = int(np.argmax(class_probs))
-                confidence = float(objectness[idx])
+            if class_scores.shape[0] > 0:
+                objectness = np.max(class_scores, axis=0)
                 
-                detections.append({
-                    'class_id': class_id,
-                    'confidence': confidence
-                })
+                # Find detections where objectness > threshold
+                high_conf_mask = objectness > confidence_threshold
+                high_conf_indices = np.where(high_conf_mask)[0]
+                
+                # Extract detections
+                for idx in high_conf_indices:
+                    class_probs = class_scores[:, idx]
+                    class_id = int(np.argmax(class_probs))
+                    confidence = float(objectness[idx])
+                    
+                    detections.append({
+                        'class_id': class_id,
+                        'confidence': confidence
+                    })
         
-        # Alternative: handle 2D or other formats
-        elif output.ndim == 2:
-            # Multiple detections: check if last dimension has enough features
+        # Handle 2D format: (num_detections, features)
+        elif output.ndim == 2 and output.shape[0] > 0:
             if output.shape[1] >= 5:
                 for detection in output:
-                    # Assume format: [x, y, w, h, conf, ...class_scores]
+                    # Try format: [x, y, w, h, conf, ...class_scores]
                     conf = float(detection[4])
                     if conf >= confidence_threshold:
-                        class_id = int(detection[5]) if len(detection) > 5 else 0
+                        # Extract class info
+                        if len(detection) > 5:
+                            class_id = int(detection[5])
+                        else:
+                            class_id = 0
                         detections.append({'class_id': class_id, 'confidence': conf})
+        
+        # Handle 1D format - single detection
+        elif output.ndim == 1 and len(output) >= 5:
+            conf = float(output[4])
+            if conf >= confidence_threshold:
+                class_id = int(output[5]) if len(output) > 5 else 0
+                detections.append({'class_id': class_id, 'confidence': conf})
     
     except Exception as e:
-        print(f"DEBUG parse_detections error: {e}", file=sys.stderr)
-        pass
+        sys.stderr.write(f"ERROR in parse_detections: {str(e)}\n")
     
     return detections
 
@@ -168,11 +172,42 @@ def main():
         output = run_inference(model_path, image_path)
         
         # Parse detections
-        detections = parse_detections(output, confidence_threshold=0.25)
+        detections = parse_detections(output, confidence_threshold=0.1)  # Lower threshold to catch more
         
         # Get top detection
         if not detections:
-            result = {'predator': 'No Threat Detected', 'confidence': 0.0}
+            # No detections above threshold - output the highest scoring class regardless
+            try:
+                if output.ndim == 3:
+                    output_2d = output[0]
+                elif output.ndim == 2:
+                    output_2d = output
+                else:
+                    output_2d = output.reshape(-1)
+                
+                # Get class scores
+                if output_2d.ndim > 1:
+                    class_scores = output_2d[4:, :]
+                    if class_scores.shape[0] > 0:
+                        max_scores = np.max(class_scores, axis=0)
+                        best_idx = np.argmax(max_scores)
+                        class_id = int(np.argmax(class_scores[:, best_idx]))
+                        confidence = float(max_scores[best_idx])
+                    else:
+                        class_id = 0
+                        confidence = 0.0
+                else:
+                    class_scores = output_2d[4:]
+                    class_id = int(np.argmax(class_scores))
+                    confidence = float(np.max(class_scores))
+                
+                if confidence < 0.1:  # If even the best score is very low
+                    result = {'predator': 'No Threat Detected', 'confidence': 0.0}
+                else:
+                    class_name = CLASS_NAMES.get(class_id, f"Unknown_{class_id}")
+                    result = {'predator': class_name, 'confidence': round(float(confidence), 4)}
+            except Exception as e:
+                result = {'predator': 'No Threat Detected', 'confidence': 0.0}
         else:
             top = max(detections, key=lambda x: x['confidence'])
             class_id = top['class_id']
@@ -182,7 +217,7 @@ def main():
             if class_id in CLASS_NAMES:
                 class_name = CLASS_NAMES[class_id]
             else:
-                class_name = f"Class {class_id}"
+                class_name = f"Unknown_{class_id}"
             
             result = {
                 'predator': class_name,

@@ -195,11 +195,36 @@ app.post('/api/predict-disease', upload.single('image'), (req, res) => {
         }
     });
 });
+app.get('/api/test-disease', (req, res) => {
+    console.log(' Testing disease detection - checking model file');
+    const modelPath = path.join(__dirname, 'FINAL_3class_fish_model_float32.tflite');
+    const fs = require('fs');
+    const exists = fs.existsSync(modelPath);
+    const size = exists ? fs.statSync(modelPath).size : 0;
+    
+    res.json({
+        success: true,
+        message: 'Disease detection API is ready',
+        model_exists: exists,
+        model_path: modelPath,
+        model_size_mb: (size / 1024 / 1024).toFixed(2),
+        timestamp: new Date().toISOString()
+    });
+});
+
 app.get('/api/test-predator', (req, res) => {
     console.log(' Testing predator detection endpoint');
+    const modelPath = path.join(__dirname, 'third_yolo.tflite');
+    const fs = require('fs');
+    const exists = fs.existsSync(modelPath);
+    const size = exists ? fs.statSync(modelPath).size : 0;
+    
     res.json({
         success: true,
         message: 'Predator detection API is working',
+        model_exists: exists,
+        model_path: modelPath,
+        model_size_mb: (size / 1024 / 1024).toFixed(2),
         timestamp: new Date().toISOString(),
         multer_available: typeof multer !== 'undefined',
         uploads_dir: 'uploads/'

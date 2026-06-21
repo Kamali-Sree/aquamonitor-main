@@ -5,6 +5,7 @@ import os
 import warnings
 import numpy as np
 from PIL import Image
+import traceback
 
 # Suppress framework warnings
 warnings.filterwarnings('ignore')
@@ -20,9 +21,12 @@ def get_interpreter(model_path):
     try:
         import tensorflow as tf
         return tf.lite.Interpreter(model_path=model_path)
-    except ImportError:
-        from tflite_runtime.interpreter import Interpreter
-        return Interpreter(model_path=model_path)
+    except Exception as e:
+        try:
+            from tflite_runtime.interpreter import Interpreter
+            return Interpreter(model_path=model_path)
+        except Exception as tflite_err:
+            raise Exception(f"TensorFlow: {str(e)}. TFLite Runtime: {str(tflite_err)}")
 
 def preprocess_image(image_path, target_size=(640, 640)):
     """Loads, resizes, and normalizes pixel streams exactly like your training process"""
@@ -39,68 +43,115 @@ def preprocess_image(image_path, target_size=(640, 640)):
 def main():
     try:
         if len(sys.argv) < 2:
-            print(json.dumps({'disease': 'Error: Missing Image Path', 'confidence': 0.0}))
-            return
+            output = {'disease': 'Error: Missing Image Path', 'confidence': 0.0}
+            print(json.dumps(output))
+            sys.exit(0)
         
         image_path = sys.argv[1]
+        
+        # Check if image file exists
+        if not os.path.exists(image_path):
+            output = {'disease': 'Error: Image file not found', 'confidence': 0.0}
+            print(json.dumps(output))
+            sys.exit(0)
+        
         model_filename = 'FINAL_3class_fish_model_float32.tflite'
         model_path = os.path.join(os.path.dirname(__file__), model_filename)
         
+        # Check if model file exists
         if not os.path.exists(model_path):
-            print(json.dumps({'disease': f'Error: Model file {model_filename} not found.', 'confidence': 0.0}))
-            return
+            output = {'disease': f'Error: Model file {model_filename} not found', 'confidence': 0.0}
+            print(json.dumps(output))
+            sys.exit(0)
             
         # Initialize TFLite Interpreter
-        interpreter = get_interpreter(model_path)
-        interpreter.allocate_tensors()
+        try:
+            interpreter = get_interpreter(model_path)
+            interpreter.allocate_tensors()
+        except Exception as e:
+            output = {'disease': f'Error: Failed to load model - {str(e)[:100]}', 'confidence': 0.0}
+            print(json.dumps(output))
+            sys.exit(0)
         
-        input_details = interpreter.get_input_details()
-        output_details = interpreter.get_output_details()
+        try:
+            input_details = interpreter.get_input_details()
+            output_details = interpreter.get_output_details()
+        except Exception as e:
+            output = {'disease': f'Error: Failed to get model details - {str(e)[:100]}', 'confidence': 0.0}
+            print(json.dumps(output))
+            sys.exit(0)
         
         # Run Preprocessing and Inference
-        input_data = preprocess_image(image_path, target_size=(640, 640))
-        interpreter.set_tensor(input_details[0]['index'], input_data)
-        interpreter.invoke()
+        try:
+            input_data = preprocess_image(image_path, target_size=(640, 640))
+            interpreter.set_tensor(input_details[0]['index'], input_data)
+            interpreter.invoke()
+            output_data = interpreter.get_tensor(output_details[0]['index'])
+        except Exception as e:
+            output = {'disease': f'Error: Failed during inference - {str(e)[:100]}', 'confidence': 0.0}
+            print(json.dumps(output))
+            sys.exit(0)
         
-        # Pull output predictions matrix
-        output_data = interpreter.get_tensor(output_details[0]['index'])
+        # Parse YOLO output
+        predicted_class = "Unknown"
+        confidence = 0.0
         
-        # Parse standard YOLO output dimension: (1, Class_Count + 4, Anchors)
-        if output_data.ndim == 3:
-            output_data = output_data[0]  # Remove batch shell
-            
-            # Rows 0-3 are box coordinates; Row 4+ are class scores
-            class_scores = output_data[4:, :]
-            
-            # Find the absolute highest scoring prediction anchor across the canvas matrix
-            max_scores = np.max(class_scores, axis=0)
-            best_anchor_idx = np.argmax(max_scores)
-            
-            confidence = float(max_scores[best_anchor_idx])
-            
-            # Standard 25% confidence filter
-            if confidence >= 0.25:
+        try:
+            if output_data.ndim == 3:
+                output_data = output_data[0]  # Remove batch shell
+                class_scores = output_data[4:, :]
+                
+                max_scores = np.max(class_scores, axis=0)
+                best_anchor_idx = np.argmax(max_scores)
+                confidence = float(max_scores[best_anchor_idx])
                 class_id = int(np.argmax(class_scores[:, best_anchor_idx]))
                 predicted_class = CLASS_NAMES.get(class_id, f"Unknown_{class_id}")
+                
+            elif output_data.ndim == 2:
+                class_scores = output_data[4:, :]
+                max_scores = np.max(class_scores, axis=0)
+                best_anchor_idx = np.argmax(max_scores)
+                confidence = float(max_scores[best_anchor_idx])
+                class_id = int(np.argmax(class_scores[:, best_anchor_idx]))
+                predicted_class = CLASS_NAMES.get(class_id, f"Unknown_{class_id}")
+                
             else:
-                predicted_class = "Healthy_Fish"
-                confidence = 1.0
-        else:
-            predicted_class = "Healthy_Fish"
-            confidence = 1.0
+                # Fallback: try to flatten and process
+                flat_output = output_data.flatten()
+                num_classes = len(CLASS_NAMES)
+                if len(flat_output) >= num_classes:
+                    class_scores = flat_output[-num_classes:]
+                    class_id = int(np.argmax(class_scores))
+                    confidence = float(np.max(class_scores))
+                    predicted_class = CLASS_NAMES.get(class_id, f"Unknown_{class_id}")
+        
+        except Exception as e:
+            sys.stderr.write(f"ERROR parsing output: {str(e)}\n")
+            output = {'disease': 'Error: Failed to parse model output', 'confidence': 0.0}
+            print(json.dumps(output))
+            sys.exit(0)
 
-        # Construct structured JSON string back to Node server stream
-        print(json.dumps({
+        # Normalize confidence to 0-1 range
+        confidence = float(round(max(0, min(1, confidence)), 4))
+        
+        # Return result
+        output = {
             'disease': predicted_class,
-            'confidence': round(confidence, 4)
-        }))
+            'confidence': confidence
+        }
+        print(json.dumps(output))
+        sys.exit(0)
         
     except Exception as e:
-        print(json.dumps({
-            'disease': 'Healthy_Fish',
-            'confidence': 1.0,
-            'debug_log': str(e)
-        }))
+        # Final catch-all error handler
+        error_msg = str(e)[:150]
+        output = {
+            'disease': 'Error: Unexpected failure',
+            'confidence': 0.0
+        }
+        print(json.dumps(output))
+        sys.stderr.write(f"FATAL ERROR: {error_msg}\n")
+        sys.exit(0)
 
 if __name__ == '__main__':
     main()
